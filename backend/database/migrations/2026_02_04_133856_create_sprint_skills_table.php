@@ -15,6 +15,8 @@ return new class extends Migration
             $table->foreignId('sprint_id')->constrained('sprints')->cascadeOnDelete();
             $table->foreignId('skill_id')->constrained('skills')->cascadeOnDelete();
             $table->primary(['sprint_id','skill_id']);
+            $table->timestamps();
+            $table->softDeletes();
         });
     }
 

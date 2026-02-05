@@ -16,6 +16,8 @@ return new class extends Migration
             $table->foreignId('level_id')->constrained('levels')->cascadeOnDelete();
             $table->text('criteria');
             $table->primary(['skill_id','level_id']);
+            $table->timestamps();
+            $table->softDeletes();
         });
     }
 
