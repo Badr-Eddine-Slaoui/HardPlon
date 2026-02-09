@@ -16,4 +16,20 @@ class Correction extends Model
         'teacher_id',
         'message',
     ];
+
+    public function brief(){
+        return $this->belongsTo(Brief::class);
+    }
+
+    public function student(){
+        return $this->belongsTo(Student::class);
+    }
+
+    public function teacher(){
+        return $this->belongsTo(Teacher::class);
+    }
+
+    public function correction_details(){
+        return $this->hasMany(CorrectionDetail::class);
+    }
 }
