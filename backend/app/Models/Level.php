@@ -15,4 +15,15 @@ class Level extends Model
         'description',
         'order',
     ];
+
+    protected $appends = ["is_active"];
+
+    public function getIsActiveAttribute()
+    {
+        return !$this->trashed();
+    }
+
+    public function skill_levels(){
+        return $this->hasMany(SkillLevel::class);
+    }
 }
