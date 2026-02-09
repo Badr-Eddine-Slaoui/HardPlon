@@ -29,6 +29,8 @@ class User extends Authenticatable implements JWTSubject
         'password',
     ];
 
+    protected $appends = ["is_active"];
+
     protected function casts(): array
     {
         return [
@@ -46,5 +48,8 @@ class User extends Authenticatable implements JWTSubject
         return [];
     }
 
-    
+    public function getIsActiveAttribute(){
+        return !$this->trashed();
+    }
+
 }
