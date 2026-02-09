@@ -15,4 +15,12 @@ class Squad extends Model
         'name',
         'member_count',
     ];
+
+    public function sprint(){
+        return $this->belongsTo(Sprint::class);
+    }
+
+    public function squad_members(){
+        return $this->hasMany(SquadMember::class);
+    }
 }
