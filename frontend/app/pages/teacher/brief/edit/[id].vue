@@ -161,6 +161,10 @@
             }
         });
     }
+
+    definePageMeta({
+        middleware: ['auth', 'teacher']
+    })
 </script>
 
 <template>

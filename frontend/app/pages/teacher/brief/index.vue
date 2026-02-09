@@ -45,6 +45,10 @@
         const modal = document.getElementById('resurrect-modal') as HTMLElement;
         modal.classList.add('hidden');
     }
+
+    definePageMeta({
+        middleware: ['auth', 'teacher']
+    })
 </script>
 
 <template>

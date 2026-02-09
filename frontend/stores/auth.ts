@@ -1,6 +1,5 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
-import { api } from '~~/utils/api';
 import type { AuthResponse, ReturnData } from '~~/types/api';
 
 
@@ -70,9 +69,24 @@ export const useAuthStore = defineStore(
             user.value = null
         }
 
+        const decoded = computed(() =>
+            token.value ? decodeJwt(token.value as string) : null
+        )
+
+        const role = computed(() => decoded.value?.role ?? null)
+
+        function checkTockenExpiration() {
+            if (!decoded.value) return true
+            if (!decoded.value.exp) return true
+            return decoded.value.exp * 1000 < Date.now()
+        }
+
         return {
             user,
             token,
+            decoded,
+            role,
+            checkTockenExpiration,
             isLoggedIn,
             login,
             fetchUser,

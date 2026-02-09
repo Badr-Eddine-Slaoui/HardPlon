@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
-import { api } from '~~/utils/api';
+import { api } from '~/utils/api';
 import type { ReturnData } from '../types/api';
 import type { ClassGroup, ClassGroupData } from '../types/class_group';
 

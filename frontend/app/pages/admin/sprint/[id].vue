@@ -11,6 +11,10 @@
             title: `Admin Dashboard - Sprint: ${store.sprint?.name}`
         })
     })
+
+    definePageMeta({
+        middleware: ['auth', 'admin']
+    })
 </script>
 
 <template>

@@ -33,6 +33,12 @@
         }
     }
 
+    definePageMeta({
+        middleware: [
+            'guest',
+        ],
+    })
+
 </script>
 
 <template>

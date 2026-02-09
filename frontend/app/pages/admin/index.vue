@@ -5,6 +5,10 @@
     onMounted(async() => {
         await admin.fetchStatistics();
     })
+
+    definePageMeta({
+        middleware: ['auth', 'admin']
+    })
 </script>
 
 <template>

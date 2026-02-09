@@ -12,6 +12,10 @@
     onMounted(async() => {
         await store.fetchUser('ADMIN', id);
     })
+
+    definePageMeta({
+        middleware: ['auth', 'admin']
+    })
 </script>
 
 <template>

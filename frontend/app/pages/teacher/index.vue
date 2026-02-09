@@ -2,6 +2,10 @@
     useHead({
         title: 'Teacher Dashboard'
     })
+
+    definePageMeta({
+        middleware: ['auth', 'teacher']
+    })
 </script>
 
 <template>

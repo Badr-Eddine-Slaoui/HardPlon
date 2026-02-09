@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
-import { api } from '~~/utils/api';
+import { api } from '~/utils/api';
 import type { ReturnData } from '../types/api';
 import type { Year, YearData } from '../types/scholar_year';
 

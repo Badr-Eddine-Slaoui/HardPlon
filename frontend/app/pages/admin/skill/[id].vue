@@ -11,6 +11,10 @@
             title: `Admin Dashboard - Skill ${store.skill?.code}: ${store.skill?.title}`
         })
     })
+
+    definePageMeta({
+        middleware: ['auth', 'admin']
+    })
 </script>
 
 <template>

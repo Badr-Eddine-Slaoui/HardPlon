@@ -17,6 +17,10 @@
         if (!capacity || capacity === 0) return 0
         return Math.min(parseFloat(((students / capacity) * 100).toFixed(2)), 100)
     }
+
+    definePageMeta({
+        middleware: ['auth', 'admin']
+    })
 </script>
 
 <template>

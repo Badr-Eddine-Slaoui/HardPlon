@@ -41,6 +41,10 @@
             errs.value = res.errors
         }
     }
+
+    definePageMeta({
+        middleware: ['auth', 'admin']
+    })
 </script>
 
 <template>

@@ -38,6 +38,10 @@ import { useSubmitting } from '../../../stores/submitting';
         selectBrief(briefs.value?.find(b => !b.is_collective)?.id as number)
     })
 
+    definePageMeta({
+        middleware: ['auth', 'student']
+    })
+
 </script>
 
 <template>

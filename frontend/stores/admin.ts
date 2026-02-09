@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
-import { api } from '~~/utils/api';
+import { api } from '~/utils/api';
+import { useAuthStore } from './auth';
 
 interface Statistics {
     students_count: number;

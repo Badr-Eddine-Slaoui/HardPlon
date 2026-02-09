@@ -81,6 +81,10 @@ import type { ReturnData } from '~~/types/api';
         }
     }
 
+    definePageMeta({
+        middleware: ['auth', 'student']
+    })
+
 </script>
 
 <template>

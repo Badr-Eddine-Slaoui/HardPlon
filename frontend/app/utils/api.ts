@@ -1,7 +1,7 @@
-import { useAuthStore } from '../stores/auth';
+import { useAuthStore } from '~~/stores/auth';
 
 export const api = $fetch.create({
-    baseURL: 'http://localhost:3535/api',
+    baseURL: "http://localhost:3535/api",
 
     onRequest({ options }) {
         const auth = useAuthStore()

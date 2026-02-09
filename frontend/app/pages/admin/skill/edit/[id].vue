@@ -87,6 +87,10 @@ import type { SkillLevel } from '~~/types/skill';
             errs.value = res.errors
         }
     }
+
+    definePageMeta({
+        middleware: ['auth', 'admin']
+    })
 </script>
 
 <template>

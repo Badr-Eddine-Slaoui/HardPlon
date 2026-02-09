@@ -45,6 +45,10 @@
         }
     })
 
+    definePageMeta({
+        middleware: ['auth', 'student']
+    })
+
 </script>
 
 <template>

@@ -12,6 +12,10 @@
     onMounted(async() => {
         await store.fetchBrief(id);
     })
+
+    definePageMeta({
+        middleware: ['auth', 'teacher']
+    })
 </script>
 
 <template>
