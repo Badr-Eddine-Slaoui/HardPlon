@@ -23,7 +23,7 @@ class AuthController extends Controller
             'access_token' => $token,
             'token_type' => 'bearer',
             'user' => Auth::guard('api')->user()
-        ]);
+        ],200);
     }
 
     public function me()
