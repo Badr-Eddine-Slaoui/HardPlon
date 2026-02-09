@@ -16,4 +16,23 @@ class Skill extends Model
         'title',
         'description',
     ];
+
+    protected $appends = ["is_active"];
+
+    public function getIsActiveAttribute()
+    {
+        return !$this->trashed();
+    }
+
+    public function formation(){
+        return $this->belongsTo(Formation::class);
+    }
+
+    public function sprint_skills(){
+        return $this->hasMany(SprintSkill::class);
+    }
+
+    public function skill_levels(){
+        return $this->hasMany(SkillLevel::class);
+    }
 }
