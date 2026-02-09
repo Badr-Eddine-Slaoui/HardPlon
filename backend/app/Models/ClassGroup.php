@@ -17,4 +17,33 @@ class ClassGroup extends Model
         'capacity',
         'description',
     ];
+
+    protected $appends = [
+        'students_count',
+        'is_active'
+    ];
+
+    public function getStudentsCountAttribute(){
+        return $this->students()->count();
+    }
+
+    public function getIsActiveAttribute(){
+        return !$this->trashed();
+    }
+
+    public function formation(){
+        return $this->belongsTo(Formation::class);
+    }
+
+    public function students(){
+        return $this->hasMany(Student::class,'id_class','id');
+    }
+
+    public function main_teacher(){
+        return $this->hasOne(ClassTeacher::class)->where('role', 'MAIN');
+    }
+
+    public function sub_teacher(){
+        return $this->hasOne(ClassTeacher::class)->where('role', 'SUB');
+    }
 }
