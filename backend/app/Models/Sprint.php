@@ -17,4 +17,19 @@ class Sprint extends Model
         'start_date',
         'end_date',
     ];
+
+    protected $appends = ["is_active"];
+
+    public function getIsActiveAttribute()
+    {
+        return !$this->trashed();
+    }
+
+    public function formation(){
+        return $this->belongsTo(Formation::class);
+    }
+
+    public function sprint_skills(){
+        return $this->hasMany(SprintSkill::class);
+    }
 }
