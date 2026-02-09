@@ -16,4 +16,12 @@ class ClassTeacher extends Model
         "role",
         "assigned_at",
     ];
+
+    public function class_group(){
+        return $this->belongsTo(ClassGroup::class);
+    }
+
+    public function teacher(){
+        return $this->belongsTo(Teacher::class);
+    }
 }
