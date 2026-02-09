@@ -15,4 +15,12 @@ class CorrectionDetail extends Model
         'brief_skill_level_id',
         'grade',
     ];
+
+    public function correction(){
+        return $this->belongsTo(Correction::class);
+    }
+
+    public function brief_skill_level(){
+        return $this->belongsTo(BriefSkillLevel::class);
+    }
 }
