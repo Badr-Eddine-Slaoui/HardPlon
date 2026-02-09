@@ -1,3 +1,40 @@
+<script setup lang="ts">
+    import type { ReturnData } from '~~/types/api';
+    import { useAuthStore } from '../../stores/auth';
+    const auth = useAuthStore()
+
+    const form = reactive({
+        email: '',
+        password: '',
+    })
+
+    const errs = ref({
+        email: '',
+        password: '',
+        login: '',
+    })
+
+    const submit = async () => {
+        const res : ReturnData<any> = await auth.login(form);
+        if(res.success) {
+            if(auth.user?.role === 'ADMIN') {
+                navigateTo('/admin')
+            }
+            else if(auth.user?.role === 'TEACHER') {
+                navigateTo('/teacher')
+            }
+            else if(auth.user?.role === 'STUDENT') {
+                navigateTo('/student')
+            }
+        }
+        
+        if(res.errors) {
+            errs.value = res.errors
+        }
+    }
+
+</script>
+
 <template>
     <NuxtLayout name="login">
         <header
@@ -50,17 +87,18 @@
                         <p class="text-slate-400 text-sm">Chart your course to knowledge across the four blues.</p>
                     </div>
                     <!-- Form -->
-                    <form class="space-y-5">
+                    <form @submit.prevent="submit" class="space-y-5">
                         <div>
                             <label class="block text-slate-400 text-xs font-bold uppercase tracking-wider mb-2"
                                 for="username">Navigator ID</label>
                             <div class="relative">
                                 <span
                                     class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xl">account_circle</span>
-                                <input
+                                <input v-model="form.email"
                                     class="w-full bg-slate-950/50 border border-slate-700 rounded-lg py-3 pl-11 pr-4 text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all placeholder:text-slate-600"
-                                    id="username" placeholder="Enter your Email" type="text" name="email" />
+                                    id="username" placeholder="Enter your Email" type="text"/>
                             </div>
+                            <span v-if="errs.email" class="text-sm text-rose-600">{{ errs.email }}</span>
                         </div>
                         <div>
                             <div class="flex justify-between mb-2">
@@ -70,10 +108,12 @@
                             <div class="relative">
                                 <span
                                     class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xl">key</span>
-                                <input
+                                <input v-model="form.password"
                                     class="w-full bg-slate-950/50 border border-slate-700 rounded-lg py-3 pl-11 pr-4 text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all placeholder:text-slate-600"
-                                    id="password" placeholder="••••••••" type="password" name="password" />
+                                    id="password" placeholder="••••••••" type="password" />
                             </div>
+                            <span v-if="errs.password" class="text-sm text-rose-600">{{ errs.password }}</span>
+                            <span v-if="errs.login" class="text-sm text-rose-600">{{ errs.login }}</span>
                         </div>
                         <div class="flex items-center gap-2 py-2">
                             <input
