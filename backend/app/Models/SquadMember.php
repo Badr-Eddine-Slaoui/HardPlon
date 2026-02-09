@@ -14,4 +14,12 @@ class SquadMember extends Model
         'squad_id',
         'student_id'
     ];
+
+    public function squad(){
+        return $this->belongsTo(Squad::class);
+    }
+
+    public function student(){
+        return $this->belongsTo(Student::class);
+    }
 }
