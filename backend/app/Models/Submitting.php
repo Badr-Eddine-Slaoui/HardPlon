@@ -17,4 +17,20 @@ class Submitting extends Model
         'message',
         'links',
     ];
+
+    protected $casts = [
+        'links' => 'array',
+    ];
+
+    public function brief(){
+        return $this->belongsTo(Brief::class);
+    }
+
+    public function student(){
+        return $this->belongsTo(Student::class);
+    }
+
+    public function squad(){
+        return $this->belongsTo(Squad::class);
+    }
 }
