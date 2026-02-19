@@ -70,9 +70,9 @@ Route::middleware('auth:api')->group(function () {
         /* User Routes */
         Route::controller(UserController::class)->group(function () {
             Route::get('/users', 'index');
-            Route::get('/users/main_teachers/{class_group}', 'get_main_teachers');
-            Route::get('/users/sub_teachers/{class_group}', 'get_sub_teachers');
-            Route::get('/users/students/{class_group}', 'get_students');
+            Route::get('/users/main_teachers/{class_group?}', 'get_main_teachers');
+            Route::get('/users/sub_teachers/{class_group?}', 'get_sub_teachers');
+            Route::get('/users/students/{class_group?}', 'get_students');
             Route::get('/users/{role}/{id}', 'show');
             Route::post('/users', 'store');
             Route::put('/users/{user}', 'update');
