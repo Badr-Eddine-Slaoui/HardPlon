@@ -1,65 +1,172 @@
 @startuml
     left to right direction
 
-    actor User
+    actor Visitor
     actor Admin
-    actor Guest
+    actor Teacher
+    actor Student
 
-    Guest <|-- User
-    User <|-- Admin
+    Visitor <|-- Admin
+    Visitor <|-- Teacher
+    Visitor <|-- Student
 
-    rectangle "Announces System" {
-        usecase (register) as UC1
-        usecase (login) as UC2
-        usecase (logout) as UC3
+    rectangle "Debriefing System" {
+        usecase (Login) as UC1
+        usecase (Logout) as UC2
 
-        usecase (consult questions) as UC4
-        usecase (consult question details) as UC15
-        usecase (create question) as UC5
-        usecase (edit question) as UC6
-        usecase (delete question) as UC7
+        usecase (Manage Scholar Year) as UC3
+        usecase (Add Scholar Year) as UC4
+        usecase (Update Scholar Year) as UC5
+        usecase (Delete Scholar Year) as UC6
+        usecase (Consult Scholar Year) as UC7
 
-        usecase (consult answers) as UC8
-        usecase (create answer) as UC9
-        usecase (edit answer) as UC10
-        usecase (delete answer) as UC11
+        usecase (Manage Grade Levels) as UC8
+        usecase (Add Grade Levels) as UC9
+        usecase (Update Grade Levels) as UC10
+        usecase (Delete Grade Levels) as UC11
+        usecase (Consult Grade Levels) as UC12
 
-        usecase (consult favorites) as UC12
-        usecase (add favorite) as UC13
-        usecase (remove favorite) as UC14
+        usecase (Manage Skills Levels) as UC13
+        usecase (Add Skills Levels) as UC14
+        usecase (Update Skills Levels) as UC15
+        usecase (Delete Skills Levels) as UC16
+        usecase (Consult Skills Levels) as UC17
+
+        usecase (Manage Skills) as UC18
+        usecase (Add Skills) as UC19
+        usecase (Update Skills) as UC20
+        usecase (Delete Skills) as UC21
+        usecase (Consult Skills) as UC22
+
+        usecase (Manage Sprints) as UC23
+        usecase (Add Sprints) as UC24
+        usecase (Update Sprints) as UC25
+        usecase (Delete Sprints) as UC26
+        usecase (Consult Sprints) as UC27
+
+        usecase (Manage Users) as UC28
+        usecase (Add Users) as UC29
+        usecase (Update Users) as UC30
+        usecase (Delete Users) as UC31
+        usecase (Consult Users) as UC32
+
+        usecase (Manage Classes) as UC33
+        usecase (Add Classes) as UC34
+        usecase (Update Classes) as UC35
+        usecase (Delete Classes) as UC36
+        usecase (Consult Classes) as UC37
+
+        usecase (Manage Brief) as UC38
+        usecase (Add Brief) as UC39
+        usecase (Update Brief) as UC40
+        usecase (Delete Brief) as UC41
+        usecase (Consult Brief) as UC42
+        
+        usecase (Assign Brief) as UC43
+    
+        usecase (Correct Brief) as UC44
+
+        usecase (Consult Briefs) as UC45
+        usecase (Consult Corrections) as UC46
+        usecase (Consult Sprints) as UC47
+        usecase (Consult Skills) as UC48
+        usecase (Submit Brief) as UC49
+
+        usecase (Manage Formation) as UC50
+        usecase (Add Formation) as UC51
+        usecase (Update Formation) as UC52
+        usecase (Delete Formation) as UC53
+        usecase (Consult Formation) as UC54
     }
 
-    UC3 ...> UC2 : <<extend>>
-    UC2 ...> UC1 : <<extend>>
+    Visitor -----> UC1
+    UC1 <.... UC2 : <<extend>>
+    
+    UC1 <.... UC3 : <<include>>
+    UC3 <|----- UC4
+    UC3 <|----- UC5
+    UC3 <|----- UC6
+    UC3 <|----- UC7
+    
+    UC1 <.... UC8 : <<include>>
+    UC8 <|----- UC9
+    UC8 <|----- UC10
+    UC8 <|----- UC11
+    UC8 <|----- UC12
+    
+    UC1 <.... UC13 : <<include>>
+    UC13 <|----- UC14
+    UC13 <|----- UC15
+    UC13 <|----- UC16
+    UC13 <|----- UC17
+    
+    UC1 <.... UC18 : <<include>>
+    UC18 <|----- UC19
+    UC18 <|----- UC20
+    UC18 <|----- UC21
+    UC18 <|----- UC22
+    
+    UC1 <.... UC23 : <<include>>
+    UC23 <|----- UC24
+    UC23 <|----- UC25
+    UC23 <|----- UC26
+    UC23 <|----- UC27
+    
+    UC1 <.... UC28 : <<include>>
+    UC28 <|----- UC29
+    UC28 <|----- UC30
+    UC28 <|----- UC31
+    UC28 <|----- UC32
+    
+    UC1 <.... UC33 : <<include>>
+    UC33 <|----- UC34
+    UC33 <|----- UC35
+    UC33 <|----- UC36
+    UC33 <|----- UC37
 
-    UC5 ...> UC2 : <<include>>
-    UC6 ...> UC2 : <<include>>
-    UC7 ...> UC2 : <<include>>
-    UC9 ...> UC2 : <<include>>
-    UC10 ...> UC2 : <<include>>
-    UC11 ...> UC2 : <<include>>
-    UC12 ...> UC2 : <<include>>
-    UC13 ...> UC2 : <<include>>
-    UC14 ...> UC2 : <<include>>
+    UC1 <.... UC50 : <<include>>
+    UC50 <|----- UC51
+    UC50 <|----- UC52
+    UC50 <|----- UC53
+    UC50 <|----- UC54
 
-    UC8 ...> UC15 : <<include>>
-    UC9 ...> UC15 : <<include>>
-    UC10 ...> UC15 : <<include>>
-    UC11 ...> UC15 : <<include>>
+    Admin -----> UC3
+    Admin -----> UC8
+    Admin -----> UC13
+    Admin -----> UC18
+    Admin -----> UC23
+    Admin -----> UC28
+    Admin -----> UC33
+    Admin -----> UC50
 
-    Guest ---> UC1
-    Guest ---> UC4
-    Guest ---> UC8
-    Guest ---> UC15
+    UC1 <.... UC38 : <<include>>
+    UC38 <|----- UC39
+    UC38 <|----- UC40
+    UC38 <|----- UC41
+    UC38 <|----- UC42
 
-    User ---> UC5
-    User ---> UC6
-    User ---> UC7
-    User ---> UC9
-    User ---> UC10
-    User ---> UC11
-    User ---> UC12
-    User ---> UC13
-    User ---> UC14
+    UC39 <.... UC43 : <<extend>>
 
-@enduml
+    Teacher -----> UC38
+    Teacher -----> UC44
+
+    Student -----> UC45
+    Student -----> UC46
+    Student -----> UC47
+    Student -----> UC48
+    Student -----> UC49
+
+    UC45 <.... UC49 : <<extend>>
+    UC49 <... UC44 : <<include>>
+
+    UC9 ...> UC4 : <<include>>
+    UC51 ...> UC9 : <<include>>
+    UC14 ...> UC51 : <<include>>
+    UC19 ...> UC14 : <<include>>
+    UC24 ...> UC19 : <<include>>
+    UC34 ...> UC29 : <<include>>
+    UC39 ...> UC24 : <<include>>
+    UC39 ...> UC34 : <<include>>
+    UC49 ...> UC39 : <<include>>
+
+@endumld

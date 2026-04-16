@@ -1,48 +1,201 @@
 @startuml
 
-    class User {
-        - name : string
-        - email : string
-        - password : string
-        - role : string
-        - remember_token : string
-        - created_at : DateTime
-        - updated_at : DateTime
+    enum UserRole{
+        ADMIN,
+        STUDENT,
+        TEACHER,
     }
 
-    class Question {
-        - title : string
-        - description : string
-        - user_id : int
-        - created_at : DateTime
-        - updated_at : DateTime
-        + user : User
+    abstract class User{
+        -first_name: string
+        -last_name: string
+        -age: int
+        -email: string
+        -cin: string
+        -phone: string
+        -password: string
+        -created_at: DateTime
+        -updated_at: DateTime
+        -deleted_at: DateTime
     }
 
-    class Answer {
-        - answer : string
-        - question_id : int
-        - user_id : int
-        - created_at : DateTime
-        - updated_at : DateTime
-        + user : User
-        + question : Question
+    class Admin{
+        -role: UserRole
     }
 
-    class Favorite {
-        - user_id : int
-        - question_id : int
-        - created_at : DateTime
-        - updated_at : DateTime
-        + user : User
-        + question : Question
+    class Teacher{
+        -role: UserRole
     }
 
-    User "1" .. "n" Question : hasMany >
-    User "1" .. "n" Answer : hasMany >
-    User "1" .. "n" Favorite : hasMany >
+    class Student{
+        -id_class: int
+        -role: UserRole
+    }
 
-    Question "1" .. "n" Answer : hasMany >
-    Question "1" .. "n" Favorite : hasMany >
+    class Squad{
+        name: string
+        member_count: int
+    }
+
+    class ScholarYear {
+        -start_year: int
+        -end_year: int
+        -capacity: int
+        -grades_count: int
+        -students_count: int
+        -created_at: DateTime
+        -updated_at: DateTime
+        -deleted_at: DateTime
+    }
+
+    class GradeLevel {
+        -name: string
+        -capacity: int
+        -created_at: DateTime
+        -updated_at: DateTime
+        -deleted_at: DateTime
+    }
+
+    class Formation {
+        -title: string
+        -description: text
+        -duration: int
+        -classes_count: int
+        -created_at: DateTime
+        -updated_at: DateTime
+        -deleted_at: DateTime
+    }
+
+    class ClassGroup {
+        -name: string
+        -image_url: string
+        -capacity: int
+        -created_at: DateTime
+        -updated_at: DateTime
+        -deleted_at: DateTime
+    }
+
+    enum ClassTeacherRole{
+        MAIN,
+        SUB,
+    }
+
+    class ClassTeacher {
+        -role: ClassTeacherRole
+        -assignedAt: date
+    }
+
+    class Skill {
+        -code: string
+        -title: string
+        -description: text
+        -created_at: DateTime
+        -updated_at: DateTime
+        -deleted_at: DateTime
+    }
+
+    class Level {
+        -name: string
+        -created_at: DateTime
+        -updated_at: DateTime
+        -deleted_at: DateTime
+    }
+
+    class Sprint {
+        -name: string
+        -description: text
+        -start_date: DateTime
+        -end_date: DateTime
+        -created_at: DateTime
+        -updated_at: DateTime
+        -deleted_at: DateTime
+    }
+
+    class Brief {
+        -title: string
+        -description: string
+        -content: text
+        -start_date: DateTime
+        -end_date: DateTime
+        -isCollective: boolean
+        -created_at: DateTime
+        -updated_at: DateTime
+        -deleted_at: DateTime
+    }
+
+    class BriefSkillLevel {
+    }
+
+    
+    class Submitting {
+        -message: text
+        -links: json
+        -created_at: DateTime
+        -updated_at: DateTime
+        -deleted_at: DateTime
+    }
+
+    class Correction {
+        -message: text
+        -created_at: DateTime
+        -updated_at: DateTime
+        -deleted_at: DateTime
+    }
+
+    enum CorrectionGrade{
+        POOR,
+        AVERAGE,
+        EXCELLENT,
+    }
+
+    class CorrectionDetail {
+        -grade: CorrectionGrade
+    }
+
+    User <|-- Admin
+    User <|-- Student
+    User <|-- Teacher
+
+    Admin -- UserRole
+    Student -- UserRole
+    Teacher -- UserRole
+
+    ClassTeacher -- ClassTeacherRole
+    CorrectionDetail -- CorrectionGrade
+
+    ScholarYear "1" -- "1,n" GradeLevel : has many >
+    GradeLevel "1" -- "1,n" Formation : has many >
+    Formation "1" -- "1,n" ClassGroup : has many >
+
+    ClassGroup "1" -- "1,n" Student : has many >
+
+    Teacher "1" -- "1,n" ClassTeacher : is <
+    ClassGroup "1" -- "1,n" ClassTeacher : has many >
+
+    Sprint "0,n" -- "1" Formation : belongs to >
+    Sprint "1" -- "0,n" Brief : has many >
+    Teacher "1" -- "0,n" Brief : create many >
+    Sprint "0,n" -- "0,n" Skill : has many >
+
+    Sprint "1" -- "1,n" Squad : has many >
+    Student "1,n" -- "1,n" Squad : has many >
+
+    Formation "1" -- "0,n" Skill : belongs to <
+    Skill "0,n" -- "0,n" Level : has many >
+
+    Brief "1" -- "0,n" BriefSkillLevel : belongs to <
+    Skill "1" -- "0,n" BriefSkillLevel : belongs to <
+    Level "1" -- "0,n" BriefSkillLevel : belongs to <
+
+    Brief "1" -- "0,n" Submitting : has many >
+    Student "1" -- "0,n" Submitting : solo
+    Squad "1" -- "0,n" Submitting : team
+
+    Teacher "1" -- "0,n" Correction : create many >
+    Student "1" -- "0,n" Correction : belongs to <
+    Brief  "1" -- "0,n" Correction : belongs to <
+
+    Correction "1" -- "0,n" CorrectionDetail : has many >
+    BriefSkillLevel "1" -- "0,n" CorrectionDetail : belongs to <
 
 @enduml
