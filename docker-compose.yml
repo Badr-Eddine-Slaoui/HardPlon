@@ -2,27 +2,22 @@ services:
 
   app:
     build:
-      context: ./
+      context: ./backend
       dockerfile: ./Dockerfile
-    container_name: laravel_app
+    container_name: app
     user: "1000:1000"
-    volumes:
-      - "${LOCAL_PATH}:/var/www/html"
+    ports:
+      - "${PHP_PORT}:8000"
     env_file:
       - .env
+    environment:
+      OCTANE_SERVER: frankenphp
+      OCTANE_HTTPS: "false"
     depends_on:
       - postgres
-
-  nginx:
-    image: nginx:alpine
-    container_name: nginx
-    ports:
-      - "${PHP_PORT}:80"
+      - redis
     volumes:
-      - "${LOCAL_PATH}:/var/www/html"
-      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
-    depends_on:
-      - app
+      - "${BACKEND_PATH}:/var/www/html"
 
   nuxt:
     build:
@@ -34,9 +29,23 @@ services:
     volumes:
       - "${FRONTEND_PATH}:/app"
     environment:
-      NUXT_PUBLIC_API_BASE: http://nginx
+      NUXT_PUBLIC_API_BASE: http://app:8000
     depends_on:
-      - nginx
+      - app
+
+  caddy:
+    image: caddy:alpine
+    container_name: caddy
+    ports:
+      - "80:80"
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    restart: always
+    depends_on:
+      - app
+      - nuxt
 
   postgres:
     image: postgres:17-alpine
@@ -62,6 +71,8 @@ services:
       - "${PGADMIN_PORT}:80"
     depends_on:
       - postgres
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
 
   puml:
     image: plantuml/plantuml-server:jetty
@@ -72,5 +83,26 @@ services:
     volumes:
       - "${PUML_PATH}:/var/www/html/uml"
 
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: ./worker
+      dockerfile: Dockerfile
+    container_name: examination_worker
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /tmp:/tmp
+    depends_on:
+      - redis 
+
 volumes:
   pgtables:
+  pgadmin_data:
+  caddy_data:
+  caddy_config:
