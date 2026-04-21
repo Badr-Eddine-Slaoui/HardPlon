@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Factories\Factory;
 /**
  * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Model>
  */
-class SubmittingFactory extends Factory
+class SubmissionFactory extends Factory
 {
     /**
      * Define the model's default state.
@@ -23,7 +23,7 @@ class SubmittingFactory extends Factory
             'student_id' => User::where('role', 'STUDENT')->inRandomOrder()->value('id'),
             'squad_id' => null,
             'message' => $this->faker->sentence(),
-            'links' => json_encode(['github' => $this->faker->url()]),
+            'link' => $this->faker->url(),
         ];
     }
 }
