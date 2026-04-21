@@ -3,15 +3,25 @@
 use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BriefController;
+use App\Http\Controllers\Api\BriefVersionController;
 use App\Http\Controllers\Api\ClassGroupController;
 use App\Http\Controllers\Api\CorrectionController;
+use App\Http\Controllers\Api\EvaluationJobController;
 use App\Http\Controllers\Api\FormationController;
 use App\Http\Controllers\Api\GradeLevelController;
 use App\Http\Controllers\Api\LevelController;
+use App\Http\Controllers\Api\ProblemController;
+use App\Http\Controllers\Api\ProblemSubmissionController;
+use App\Http\Controllers\Api\ProblemSubmissionJobController;
+use App\Http\Controllers\Api\ProblemTestCaseController;
+use App\Http\Controllers\Api\RunnerController;
+use App\Http\Controllers\Api\RunnerVersionController;
 use App\Http\Controllers\Api\ScholarYearController;
 use App\Http\Controllers\Api\SkillController;
 use App\Http\Controllers\Api\SprintController;
-use App\Http\Controllers\Api\SubmittingController;
+use App\Http\Controllers\Api\StackController;
+use App\Http\Controllers\Api\StackRunnerController;
+use App\Http\Controllers\Api\SubmissionController;
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -110,6 +120,51 @@ Route::middleware('auth:api')->group(function () {
             Route::delete('/sprints/{sprint}', 'destroy');
             Route::post('/sprints/{id}/restore','restore');
         });
+
+        /* Runners Routes */
+        Route::controller(RunnerController::class)->group(function () {
+            Route::get('c', 'index');
+            Route::get('/runners/{id}', 'show');
+            Route::post('/runners', 'store');
+            Route::put('/runners/{id}', 'update');
+            Route::delete('/runners/{id}', 'destroy');
+        });
+
+        /* Runner Versions Routes */
+        Route::controller(RunnerVersionController::class)->group(function () {
+            Route::get('/runner-versions', 'index');
+            Route::get('/runner-versions/{id}', 'show');
+            Route::post('/runner-versions', 'store');
+            Route::delete('/runner-versions/{id}', 'destroy');
+        });
+
+        /* Stack Routes */
+        Route::controller(StackController::class)->group(function () {
+            Route::get('/stacks', 'index');
+            Route::get('/stacks/{id}', 'show');
+            Route::post('/stacks', 'store');
+            Route::put('/stacks/{id}', 'update');
+            Route::delete('/stacks/{id}', 'destroy');
+        });
+
+        /* Stack Runners Routes */
+        Route::controller(StackRunnerController::class)->group(function () {
+            Route::get('/stack-runners', 'index');
+            Route::get('/stack-runners/{id}', 'show');
+            Route::post('/stack-runners', 'store');
+            Route::put('/stack-runners/{id}', 'update');
+            Route::delete('/stack-runners/{id}', 'destroy');
+        });
+
+        /* Brief Routes */
+        Route::controller(BriefController::class)->group(function () {
+            Route::get('/get_teacher_briefs', 'index');
+            Route::get('/briefs/{brief}', 'show');
+            Route::post('/briefs', 'store');
+            Route::put('/briefs/{brief}', 'update');
+            Route::delete('/briefs/{brief}', 'destroy');
+            Route::post('/briefs/{id}/restore','restore');
+        });
     });
 
     /* Teacher Routes */
@@ -117,12 +172,38 @@ Route::middleware('auth:api')->group(function () {
 
         /* Brief Routes */
         Route::controller(BriefController::class)->group(function () {
-            Route::get('/briefs', 'index');
+            Route::get('/get_teacher_briefs', 'index');
             Route::get('/briefs/{brief}', 'show');
             Route::post('/briefs', 'store');
             Route::put('/briefs/{brief}', 'update');
             Route::delete('/briefs/{brief}', 'destroy');
             Route::post('/briefs/{id}/restore','restore');
+        });
+
+        /* Brief Versions Routes */
+        Route::controller(BriefVersionController::class)->group(function () {
+            Route::get('/brief-versions', 'index');
+            Route::get('/brief-versions/{id}', 'show');
+            Route::post('/brief-versions', 'store');
+            Route::delete('/brief-versions/{id}', 'destroy');
+        });
+
+        /* Problems Routes */
+        Route::controller(ProblemController::class)->group(function () {
+            Route::get('/problems', 'index');
+            Route::get('/problems/{id}', 'show');
+            Route::post('/problems', 'store');
+            Route::put('/problems/{id}', 'update');
+            Route::delete('/problems/{id}', 'destroy');
+        });
+
+        /* Problem Test Cases Routes */
+        Route::controller(ProblemTestCaseController::class)->group(function () {
+            Route::get('/problem-test-cases', 'index');
+            Route::get('/problem-test-cases/{id}', 'show');
+            Route::post('/problem-test-cases', 'store');
+            Route::put('/problem-test-cases/{id}', 'update');
+            Route::delete('/problem-test-cases/{id}', 'destroy');
         });
 
         /* Sprint Routes */
@@ -141,9 +222,9 @@ Route::middleware('auth:api')->group(function () {
             Route::get('/class-groups/{id}/students', 'get_class_group_students');
         });
 
-        /* Submitting Routes */
-        Route::controller(SubmittingController::class)->group(function () {
-            Route::get('/submittings/student/{id}', 'get_student_submittings');
+        /* Submission Routes */
+        Route::controller(SubmissionController::class)->group(function () {
+            Route::get('/submissions/student/{id}', 'get_student_submissions');
         });
 
         /* Correction Routes */
@@ -163,11 +244,18 @@ Route::middleware('auth:api')->group(function () {
             Route::get('/briefs', 'get_student_briefs');
         });
 
-        /* Submitting Routes */
-        Route::controller(SubmittingController::class)->group(function () {
-            Route::get('/submittings', 'get_student_submittings');
-            Route::get('/submittings/{submitting}', 'show');
-            Route::post('/submittings', 'store');
+        /* Submission Routes */
+        Route::controller(SubmissionController::class)->group(function () {
+            Route::get('/submissions', 'get_student_submissions');
+            Route::get('/submissions/{submission}', 'show');
+            Route::post('/submissions', 'store');
+        });
+
+        /* Problem Submission Routes */
+        Route::controller(ProblemSubmissionController::class)->group(function () {
+            Route::get('/problem-submissions', 'index');
+            Route::post('/problem-submissions', 'store');
+            Route::get('/problem-submissions/{id}', 'show');
         });
 
         /* Correction Routes */
@@ -175,5 +263,16 @@ Route::middleware('auth:api')->group(function () {
             Route::get('/corrections', 'get_student_corrections');
             Route::get('/corrections/{id}', 'show');
         });
+    });
+});
+
+Route::prefix('worker')->group(function () {
+    Route::controller(EvaluationJobController::class)->group(function () {
+        Route::get('/evaluation-jobs/{id}', 'show');
+        Route::put('/evaluation-jobs/{id}', 'update');
+    });
+    Route::controller(ProblemSubmissionJobController::class)->group(function () {
+        Route::get('/problem-submission-jobs/{id}', 'show');
+        Route::put('/problem-submission-jobs/{id}', 'update');
     });
 });
