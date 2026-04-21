@@ -1,7 +1,7 @@
 <script setup lang="ts">
     import { useBrief } from '~~/stores/brief';
     import type { Brief } from '~~/types/brief';
-import { useSubmitting } from '../../../stores/submitting';
+import { useSubmission } from '../../../stores/submission';
 
     useHead({
         title: 'Student Dashboard - Bounty Board'
@@ -13,7 +13,7 @@ import { useSubmitting } from '../../../stores/submitting';
     const selected_brief: Ref<number | null> = ref(null)
     const submitted_briefs = ref<number[] | null>(null)
     const briefs_count: Ref<number> = ref(0)
-    const submitting = useSubmitting()
+    const submission = useSubmission()
 
     const toggleBriefType = (type: string)=>{
         brief_type.value = type
@@ -31,8 +31,8 @@ import { useSubmitting } from '../../../stores/submitting';
     }
 
     onMounted(async() => {
-        await submitting.fetchStudentSubmittings();
-        submitted_briefs.value = submitting.submittings?.map(b => b.brief_id) as number[]
+        await submission.fetchStudentSubmissions();
+        submitted_briefs.value = submission.submissions?.map(b => b.brief_id) as number[]
         briefs.value = await store.fetchStudentBriefs();
         toggleBriefType('solo')
         selectBrief(briefs.value?.find(b => !b.is_collective)?.id as number)
@@ -244,7 +244,7 @@ import { useSubmitting } from '../../../stores/submitting';
                                 <span class="material-symbols-outlined text-sm">info</span>
                                 Attach your Git repository link
                             </div>
-                            <NuxtLink :to="`/student/submitting/${selected_brief}/create`"
+                            <NuxtLink :to="`/student/submission/${selected_brief}/create`"
                                 class="bg-pirate-gold hover:bg-pirate-gold-dark text-background-dark px-8 py-4 rounded-xl font-black text-lg uppercase tracking-widest transition-all shadow-[0_8px_20px_rgba(212,175,55,0.3)] hover:shadow-[0_8px_30px_rgba(212,175,55,0.5)] flex items-center gap-3 border border-pirate-gold-dark/30 hover:-translate-y-1">
                                 <span class="material-symbols-outlined text-2xl">diamond</span>
                                 Deliver Treasure
@@ -254,7 +254,7 @@ import { useSubmitting } from '../../../stores/submitting';
                     <div v-else
                         class="p-6 border-t border-slate-200 dark:border-[#224249] bg-white dark:bg-[#102023] shrink-0 sticky bottom-0 z-20">
                         <div class="max-w-4xl mx-auto flex items-center justify-end">
-                            <NuxtLink :to="`/student/submitting?brief_id=${selected_brief}`"
+                            <NuxtLink :to="`/student/submission?brief_id=${selected_brief}`"
                                 class="bg-pirate-gold hover:bg-pirate-gold-dark text-background-dark px-8 py-4 rounded-xl font-black text-lg uppercase tracking-widest transition-all shadow-[0_8px_20px_rgba(212,175,55,0.3)] hover:shadow-[0_8px_30px_rgba(212,175,55,0.5)] flex items-center gap-3 border border-pirate-gold-dark/30 hover:-translate-y-1">
                                 <span class="material-symbols-outlined text-2xl">visibility</span>
                                 See Your Delivery
