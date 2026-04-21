@@ -99,7 +99,18 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - /tmp:/tmp
     depends_on:
-      - redis 
+      - redis
+
+  problems_worker:
+    build:
+      context: ./problems_worker
+      dockerfile: Dockerfile
+    container_name: problem_worker
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /tmp:/tmp
+    depends_on:
+      - redis
 
 volumes:
   pgtables:
