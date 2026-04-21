@@ -15,7 +15,24 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // 1️⃣ Academic structure
+        $this->call([
+            ScholarYearSeeder::class,
+            GradeLevelSeeder::class,
+            FormationSeeder::class,
+            ClassGroupSeeder::class,
+            UserSeeder::class,
+            ClassTeacherSeeder::class,
+            LevelSeeder::class,
+            SkillSeeder::class,
+            SkillLevelSeeder::class,
+            SprintSeeder::class,
+            SprintSkillSeeder::class,
+            BriefSeeder::class,
+            BriefSkillLevelSeeder::class,
+            LanguageSeeder::class,
+        ]);
+
+        /* // 1️⃣ Academic structure
         $this->call([
             ScholarYearSeeder::class,
             GradeLevelSeeder::class,
@@ -48,9 +65,9 @@ class DatabaseSeeder extends Seeder
         $this->call([
             BriefSeeder::class,
             BriefSkillLevelSeeder::class,
-            SubmittingSeeder::class,
+            SubmissionSeeder::class,
             CorrectionSeeder::class,
             CorrectionDetailSeeder::class,
-        ]);
+        ]); */
     }
 }
