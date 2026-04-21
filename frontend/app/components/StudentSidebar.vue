@@ -46,7 +46,7 @@ const submit = async () => {
                 <span class="material-symbols-outlined fill-1">assignment</span>
                 <span class="font-medium">Bounty Board</span>
             </NuxtLink>
-            <NuxtLink :class="isActive('/student/submitting', true)" to="/student/submitting">
+            <NuxtLink :class="isActive('/student/submission', true)" to="/student/submission">
                 <span class="material-symbols-outlined fill-1">inventory_2</span>
                 <span class="font-medium">My Treasure</span>
             </NuxtLink>
