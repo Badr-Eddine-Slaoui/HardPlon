@@ -21,10 +21,27 @@ class BriefController extends Controller
             "data" => compact("briefs", "archived_briefs")
         ], 200);
     }
+    public function get_teacher_briefs()
+    {
+        $briefs = Brief::withTrashed()
+            ->with(['sprint'])
+            ->where('teacher_id', Auth::user()->id)
+            ->orderByDesc('created_at')->get();
+        $archived_briefs = Brief::onlyTrashed()
+            ->with(['sprint'])
+            ->where('teacher_id', Auth::user()->id)
+            ->orderByDesc('created_at')
+            ->get();
+
+        return response()->json([
+            "success" => true,
+            "data" => compact("briefs", "archived_briefs")
+        ], 200);
+    }
 
     public function get_student_briefs(){
         $briefs = Brief::withoutTrashed()
-            ->with(["sprint", "class_group", "teacher", "brief_skill_levels.skill", "brief_skill_levels.level"])
+            ->with(["sprint", "class_group", "teacher", "brief_skill_levels.skill", "brief_skill_levels.level", "stack"])
             ->where("class_group_id", Auth::user()->id_class)
             ->orderByDesc("created_at")
             ->get();
@@ -36,7 +53,7 @@ class BriefController extends Controller
 
     public function show(Request $request, Brief $brief)
     {
-        $brief->loadMissing(["sprint", "class_group.formation", "teacher", "brief_skill_levels.skill", "brief_skill_levels.level"]);
+        $brief->loadMissing(["sprint", "class_group.formation", "teacher", "brief_skill_levels.skill", "brief_skill_levels.level", "stack"]);
         return response()->json([
             "success"=> true,
             "data" => compact("brief")
@@ -48,6 +65,7 @@ class BriefController extends Controller
         $brief = Brief::create([
             "sprint_id" => $request->sprint_id,
             "class_group_id" => $request->class_group_id,
+            "stack_id" => $request->stack_id,
             "teacher_id" => Auth::id(),
             "title" => $request->title,
             "description" => $request->description,
@@ -86,6 +104,7 @@ class BriefController extends Controller
         $is_updated = $brief->update([
             "sprint_id" => $request->sprint_id,
             "class_group_id" => $request->class_group_id,
+            "stack_id" => $request->stack_id,
             "teacher_id" => Auth::id(),
             "title" => $request->title,
             "description" => $request->description,
