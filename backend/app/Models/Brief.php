@@ -14,6 +14,7 @@ class Brief extends Model
         "sprint_id",
         "class_group_id",
         "teacher_id",
+        "stack_id",
         "title",
         "description",
         "content",
@@ -46,10 +47,22 @@ class Brief extends Model
     }
 
     public function submittions(){
-        return $this->hasMany(Submitting::class);
+        return $this->hasMany(Submission::class);
     }
 
     public function corrections(){
         return $this->hasMany(Correction::class);
+    }
+
+    public function stack(){
+        return $this->belongsTo(Stack::class);
+    }
+
+    public function brief_versions(){
+        return $this->hasMany(BriefVersion::class);
+    }
+
+    public function problems(){
+        return $this->hasMany(Problem::class);
     }
 }
