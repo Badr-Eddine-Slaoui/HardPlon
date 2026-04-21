@@ -1,7 +1,7 @@
 import type { User } from './user';
 import type { Brief } from './brief';
 
-export interface Submitting {
+export interface Submission {
     id: number;
     brief_id: number;
     student_id: number;
