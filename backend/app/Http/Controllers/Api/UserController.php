@@ -10,13 +10,18 @@ use App\Models\Teacher;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Laravel\Octane\Facades\Octane;
 
 class UserController extends Controller
 {
     public function index()
     {
-        $users = User::withTrashed()->orderByDesc('created_at')->get();
-        $archived_users = User::onlyTrashed()->get();
+        $perPage = request()->get('per_page', 5);
+
+        [$users, $archived_users] = Octane::concurrently([
+            fn() => User::withoutTrashed()->orderByDesc('created_at')->paginate($perPage),
+            fn() => User::onlyTrashed()->get()
+        ]);
 
         return response()->json([
             "success" => true,
