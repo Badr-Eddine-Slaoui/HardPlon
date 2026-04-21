@@ -1,5 +1,5 @@
 <script setup lang="ts">
-    import { useSubmitting } from '~~/stores/submitting';
+    import { useSubmission } from '~~/stores/submission';
     import { useBrief } from '~~/stores/brief';
 import type { ReturnData } from '~~/types/api';
 
@@ -9,7 +9,7 @@ import type { ReturnData } from '~~/types/api';
 
     const id: number = parseInt(useRoute().params?.id as string)
 
-    const store = useSubmitting();
+    const store = useSubmission();
     const briefs = useBrief();
 
     const links = ref([] as Array<{ [key: string]: string }>)
@@ -71,9 +71,9 @@ import type { ReturnData } from '~~/types/api';
 
     const submit = async () => {
         form.links = links.value;
-        const res : ReturnData<any> = await store.createSubmitting(form);
+        const res : ReturnData<any> = await store.createSubmission(form);
         if(res.success) {
-            navigateTo('/student/submitting')
+            navigateTo('/student/submission')
         }
         
         if(res.errors) {
@@ -109,7 +109,7 @@ import type { ReturnData } from '~~/types/api';
                 <div class="flex-1 p-8 overflow-y-auto">
                     <div class="max-w-2xl mx-auto space-y-6">
                         <div class="flex items-center gap-2 mb-2">
-                            <NuxtLink to="/student/submitting"
+                            <NuxtLink to="/student/submission"
                                 class="text-primary hover:text-primary/80 flex items-center gap-1 text-sm font-bold">
                                 <span class="material-symbols-outlined text-sm">arrow_back</span>
                                 Back to Board
