@@ -46,10 +46,10 @@
                     <span class="material-symbols-outlined">anchor</span>
                     <span class="font-medium text-sm">Briefs</span>
                 </NuxtLink>
-                <NuxtLink :class="isActive('/teacher/submitting', true)"
-                    to="/teacher/submitting">
+                <NuxtLink :class="isActive('/teacher/submission', true)"
+                    to="/teacher/submission">
                     <span class="material-symbols-outlined">inventory_2</span>
-                    <span class="font-medium text-sm">Crew Submittings</span>
+                    <span class="font-medium text-sm">Crew Submissions</span>
                 </NuxtLink>
                 <form class="w-full" @submit.prevent="submit">
                     <button type="submit"
