@@ -2,7 +2,7 @@ import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { api } from '~/utils/api';
 import type { ReturnData } from '../types/api';
-import type { User, UserData } from '../types/user';
+import type { PaginatedUsersData, User, UserData } from '../types/user';
 
 export const useUser = defineStore(
     'user',
@@ -10,15 +10,36 @@ export const useUser = defineStore(
         const users = ref<User[] | null>(null)
         const user = ref<User | null>(null)
         const archived_users = ref<User[] | null>(null)
+        const meta: {
+            current_page: number;
+            last_page: number;
+            next_page_url: string | null;
+            prev_page_url: string | null;
+            total: number;
+            per_page: number;
+            from: number;
+            to: number;
+        } = reactive({
+            current_page: 0,
+            last_page: 0,
+            next_page_url: null,
+            prev_page_url: null,
+            total: 0,
+            per_page: 0,
+            from: 0,
+            to: 0
+        })
 
-        async function fetchUsers(): Promise<void> {
-            const res = await api<ReturnData<UserData>>('/admin/users')
-            users.value = res.data?.users as User[]
-            archived_users.value = res.data?.archived_users as User[]
+        async function fetchUsers(page: number = 1, per_page: number = 5): Promise<void> {
+            const res = await api<ReturnData<UserData<PaginatedUsersData>>>(`/admin/users?page=${page}&per_page=${per_page}`)
+            users.value = res.data?.users?.data as User[]
+            archived_users.value = res.data?.archived_users?.data as User[]
+            
+            Object.assign(meta, res.data?.users)
         }
 
         async function fetchUser(role: string, id: number): Promise<void> {
-            const res = await api<ReturnData<{ user: User}>>(`/admin/users/${role}/${id}`)
+            const res = await api<ReturnData<{ user: User }>>(`/admin/users/${role}/${id}`)
             user.value = res.data?.user as User
         }
 
@@ -38,8 +59,8 @@ export const useUser = defineStore(
         }
 
         async function createUser(data: { first_name: string, last_name: string, age: number, email: string, cin: string, phone: string, role: string, password: string }): Promise<ReturnData<any>> {
-            try{
-                const res = await api<ReturnData<{ user: User, message: string}>>('/admin/users', {
+            try {
+                const res = await api<ReturnData<{ user: User, message: string }>>('/admin/users', {
                     method: 'POST',
                     body: data
                 })
@@ -93,13 +114,13 @@ export const useUser = defineStore(
         }
 
         async function updateUser(id: number, data: { first_name: string, last_name: string, age: number, email: string, cin: string, phone: string, role: string }): Promise<ReturnData<any>> {
-            try{
-                const res = await api<ReturnData<{ user: User, message: string}>>(`/admin/users/${id}`, {
+            try {
+                const res = await api<ReturnData<{ user: User, message: string }>>(`/admin/users/${id}`, {
                     method: 'PUT',
                     body: data
                 })
 
-                if(!users.value?.length){
+                if (!users.value?.length) {
                     await fetchUsers()
                 }
 
@@ -157,7 +178,7 @@ export const useUser = defineStore(
                 method: 'DELETE'
             })
 
-            if(!users.value?.length){
+            if (!users.value?.length) {
                 await fetchUsers()
             }
 
@@ -172,7 +193,7 @@ export const useUser = defineStore(
                 method: 'POST'
             })
 
-            if(!users.value?.length){
+            if (!users.value?.length) {
                 await fetchUsers()
             }
 
@@ -186,6 +207,7 @@ export const useUser = defineStore(
             users,
             user,
             archived_users,
+            meta,
             fetchUsers,
             fetchTeachersByRole,
             fetchStudents,
@@ -196,10 +218,5 @@ export const useUser = defineStore(
             archiveUser,
             restoreUser
         }
-    },
-    {
-        persist: {
-            pick: ['users', 'archived_users'],
-        },
     }
 )
