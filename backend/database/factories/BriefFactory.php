@@ -4,6 +4,7 @@ namespace Database\Factories;
 
 use App\Models\ClassGroup;
 use App\Models\Sprint;
+use App\Models\Stack;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -23,6 +24,7 @@ class BriefFactory extends Factory
             'sprint_id' => Sprint::inRandomOrder()->value('id'),
             'class_group_id' => ClassGroup::inRandomOrder()->value('id'),
             'teacher_id' => User::where('role', 'TEACHER')->inRandomOrder()->value('id'),
+            'stack_id' => Stack::inRandomOrder()->value('id'),
             'title' => $this->faker->sentence(4),
             'description' => $this->faker->sentence(),
             'content' => $this->faker->paragraph(3),
