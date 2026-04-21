@@ -24,6 +24,7 @@ class BriefRequest extends FormRequest
         return [
             "sprint_id" => "required|exists:sprints,id",
             "class_group_id" => "required|exists:class_groups,id",
+            "stack_id" => "required|exists:stacks,id",
             "title" => "required|string|min:2|max:50",
             "description" => "required|string|min:2|max:255",
             "content" => "required|string|min:2",
@@ -43,6 +44,8 @@ class BriefRequest extends FormRequest
             "sprint_id.exists" => "Sprint does not exist.",
             "class_group_id.required" => "Class group is required.",
             "class_group_id.exists" => "Class group does not exist.",
+            "stack_id.required" => "Stack is required.",
+            "stack_id.exists" => "Stack does not exist.",
             "title.required" => "Title is required.",
             "title.string" => "Title must be a string.",
             "title.min" => "Title must be at least 2 characters.",
