@@ -4,7 +4,7 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class SubmittingRequest extends FormRequest
+class SubmissionRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -25,7 +25,7 @@ class SubmittingRequest extends FormRequest
             'brief_id' => 'required|exists:briefs,id',
             'squad_id ' => 'nullable|exists:squads,id',
             'message' => 'required|string|min:2',
-            'links' => 'required|array|min:1',
+            'link' => 'required|string|regex:/^(https?:\/\/)?(www\.)?github\.com\/[A-Za-z0-9_-]+\/[A-Za-z0-9_-]+(\/)?\.git$/|min:5',
         ];
     }
 
@@ -34,13 +34,14 @@ class SubmittingRequest extends FormRequest
         return [
             'brief_id.required' => 'Brief is required.',
             'brief_id.exists' => 'Brief does not exist.',
-            'squad_id.required' => 'Squad is required.',
             'squad_id.exists' => 'Squad does not exist.',
             'message.required' => 'Message is required.',
             'message.string' => 'Message must be a string.',
             'message.min' => 'Message must be at least 2 characters.',
-            'links.required' => 'Links are required.',
-            'links.array' => 'Links must be an array.',
+            'link.required' => 'Link is required.',
+            'link.string' => 'Link must be a string.',
+            'link.regex' => 'Link must be a valid GitHub repository link.',
+            'link.min' => 'Link must be at least 5 characters.',
         ];
     }
 }
