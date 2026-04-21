@@ -127,7 +127,7 @@
     }
 
     
-    class Submitting {
+    class Submission {
         -message: text
         -links: json
         -created_at: DateTime
@@ -187,9 +187,9 @@
     Skill "1" -- "0,n" BriefSkillLevel : belongs to <
     Level "1" -- "0,n" BriefSkillLevel : belongs to <
 
-    Brief "1" -- "0,n" Submitting : has many >
-    Student "1" -- "0,n" Submitting : solo
-    Squad "1" -- "0,n" Submitting : team
+    Brief "1" -- "0,n" Submission : has many >
+    Student "1" -- "0,n" Submission : solo
+    Squad "1" -- "0,n" Submission : team
 
     Teacher "1" -- "0,n" Correction : create many >
     Student "1" -- "0,n" Correction : belongs to <
