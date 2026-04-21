@@ -1,7 +1,7 @@
 <script setup lang="ts">
-    import { useSubmitting } from '~~/stores/submitting';
+    import { useSubmission } from '~~/stores/submission';
     import { useCorrection } from '~~/stores/correction';
-    import type { Submitting } from '~~/types/submitting';
+    import type { Submission } from '~~/types/submission';
     import { useClassGroup } from '~~/stores/class_group';
     import { useUser } from '~~/stores/user';
     import type { ClassGroup } from '~~/types/class_group';
@@ -14,7 +14,7 @@
 
     const classes = useClassGroup();
     const users = useUser();
-    const store = useSubmitting();
+    const store = useSubmission();
     const correction = useCorrection();
 
     const class_groups: Ref<ClassGroup[] | null> =  ref([])
@@ -22,7 +22,7 @@
 
     const selected_class_group: Ref<number | null> = ref(null)
     const selected_student: Ref<number | null> = ref(null)
-    const selected_submitting: Ref<number | null> = ref(null)
+    const selected_submission: Ref<number | null> = ref(null)
     const is_corrected: Ref<boolean> = ref(false)
 
     const details: Ref<{ brief_skill_level_id: number, grade: string }[]> = ref([] as { brief_skill_level_id: number, grade: string }[])
@@ -42,8 +42,8 @@
     }
 
     const form = reactive({
-        brief_id: store.submitting?.brief_id as number,
-        student_id: store.submitting?.student_id as number,
+        brief_id: store.submission?.brief_id as number,
+        student_id: store.submission?.student_id as number,
         message: '',
         details: [] as { brief_skill_level_id: number, grade: string }[]
     })
@@ -60,31 +60,31 @@
         students.value = await users.fetchTeacherStudents(id)
     }
 
-    const getStudentSubmittings = async (id: number) => {
+    const getStudentSubmissions = async (id: number) => {
         selected_student.value = id
-        await store.fetchSubmittingsByStudentId(id)
+        await store.fetchSubmissionsByStudentId(id)
         await correction.fetchStudentCorrectionsById(id)
     }
 
-    const getSubmitting = async (id: number) => {
+    const getSubmission = async (id: number) => {
         is_all_grades_setted.value = false
         edit_mode.value = false
         details.value = []
         form.message = ''
         form.details = []
-        await store.fetchSubmitting(id)
-        await correction.fetchStudentCorrection(store.submitting?.brief_id as number, store.submitting?.student_id as number)
-        form.brief_id = store.submitting?.brief_id as number
-        form.student_id = store.submitting?.student_id as number
+        await store.fetchSubmission(id)
+        await correction.fetchStudentCorrection(store.submission?.brief_id as number, store.submission?.student_id as number)
+        form.brief_id = store.submission?.brief_id as number
+        form.student_id = store.submission?.student_id as number
         is_corrected.value = correction.correction ? true : false
         if(!is_corrected.value){
-            details.value = store.submitting?.brief?.brief_skill_levels?.map(b => ({ brief_skill_level_id: b.id, grade: '' })) as { brief_skill_level_id: number, grade: string }[]
+            details.value = store.submission?.brief?.brief_skill_levels?.map(b => ({ brief_skill_level_id: b.id, grade: '' })) as { brief_skill_level_id: number, grade: string }[]
         }
     }
 
-    const selectSubmitting = (id: number)=>{
-        selected_submitting.value = id
-        getSubmitting(id)
+    const selectSubmission = (id: number)=>{
+        selected_submission.value = id
+        getSubmission(id)
     }
 
     const mountPage = async() => {
@@ -92,9 +92,9 @@
         if(!class_groups.value) return
         await getClassGroupStudents(class_groups.value?.[0]?.id as number)
         if(!students.value) return
-        await getStudentSubmittings(students.value?.[0]?.id as number)
-        if(!store.submittings) return
-        selectSubmitting(store.submittings?.[0]?.id as number)
+        await getStudentSubmissions(students.value?.[0]?.id as number)
+        if(!store.submissions) return
+        selectSubmission(store.submissions?.[0]?.id as number)
     }
 
     const addDetailGrade = (id: number, grade: string) => {
@@ -153,7 +153,7 @@
                             class="w-full bg-slate-50 dark:bg-background-dark border-slate-200 dark:border-[#224249] rounded-lg px-3 py-2 text-sm focus:ring-primary focus:border-primary">
                             <option v-for="class_group in class_groups" :key="class_group.id" :value="class_group.id" :selected="class_group.id === selected_class_group" >{{ class_group.name }}</option>
                         </select>
-                        <select v-if="selected_class_group" @change="getStudentSubmittings(parseInt(($event.target as HTMLSelectElement).value as string))"
+                        <select v-if="selected_class_group" @change="getStudentSubmissions(parseInt(($event.target as HTMLSelectElement).value as string))"
                             class="w-full bg-slate-50 dark:bg-background-dark border-slate-200 dark:border-[#224249] rounded-lg px-3 py-2 text-sm focus:ring-primary focus:border-primary">
                             <option v-for="student in students" :key="student.id" :value="student.id" :selected="student.id === selected_student" >{{ student.first_name }} {{ student.last_name }}</option>
                         </select>
@@ -161,27 +161,27 @@
                 </div>
                 <div class="flex-1 overflow-y-auto">
                     <div class="divide-y divide-slate-100 dark:divide-[#224249]">
-                        <template v-if="store.submittings?.length as number > 0">
-                            <template v-for="submitting in store.submittings" :key="submitting.id">
-                                <div v-if="selected_submitting === submitting.id" class="p-4 bg-primary/5 border-l-4 border-primary cursor-pointer">
+                        <template v-if="store.submissions?.length as number > 0">
+                            <template v-for="submission in store.submissions" :key="submission.id">
+                                <div v-if="selected_submission === submission.id" class="p-4 bg-primary/5 border-l-4 border-primary cursor-pointer">
                                     <div class="flex justify-between items-start mb-1">
-                                        <h3 class="text-sm font-bold adventure-title text-primary truncate">{{ submitting.brief.title }}</h3>
-                                        <span class="text-[10px] text-slate-400">{{ submitting.created_at }}</span>
+                                        <h3 class="text-sm font-bold adventure-title text-primary truncate">{{ submission.brief.title }}</h3>
+                                        <span class="text-[10px] text-slate-400">{{ submission.created_at }}</span>
                                     </div>
-                                    <p class="text-xs text-slate-500 dark:text-slate-400 line-clamp-1 mb-2">{{ submitting.brief.description }}</p>
-                                    <span v-if="correction?.corrections?.find(c => c.brief_id === submitting.brief_id) === undefined"
+                                    <p class="text-xs text-slate-500 dark:text-slate-400 line-clamp-1 mb-2">{{ submission.brief.description }}</p>
+                                    <span v-if="correction?.corrections?.find(c => c.brief_id === submission.brief_id) === undefined"
                                             class="px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-500 text-[10px] font-black uppercase tracking-wider">Not Corrected</span>
                                     <span v-else
                                         class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-500 text-[10px] font-black uppercase tracking-wider">Corrected</span>
                                 </div>
-                                <div v-else @click="selectSubmitting(submitting.id)"
+                                <div v-else @click="selectSubmission(submission.id)"
                                     class="p-4 hover:bg-slate-100 dark:hover:bg-[#182f34] cursor-pointer transition-colors group">
                                     <div class="flex justify-between items-start mb-1">
-                                        <h3 class="text-sm font-bold adventure-title group-hover:text-primary truncate">{{ submitting.brief.title }}</h3>
-                                        <span class="text-[10px] text-slate-400">{{ submitting.created_at }}</span>
+                                        <h3 class="text-sm font-bold adventure-title group-hover:text-primary truncate">{{ submission.brief.title }}</h3>
+                                        <span class="text-[10px] text-slate-400">{{ submission.created_at }}</span>
                                     </div>
-                                    <p class="text-xs text-slate-500 dark:text-slate-400 line-clamp-1 mb-2">{{ submitting.brief.description }}</p>
-                                    <span v-if="correction?.corrections?.find(c => c.brief_id === submitting.brief_id) === undefined"
+                                    <p class="text-xs text-slate-500 dark:text-slate-400 line-clamp-1 mb-2">{{ submission.brief.description }}</p>
+                                    <span v-if="correction?.corrections?.find(c => c.brief_id === submission.brief_id) === undefined"
                                             class="px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-500 text-[10px] font-black uppercase tracking-wider">Not Corrected</span>
                                     <span v-else
                                         class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-500 text-[10px] font-black uppercase tracking-wider">Corrected</span>
@@ -206,7 +206,7 @@
                     </div>
                 </div>
             </div>
-            <form v-if="selected_submitting" @submit.prevent="submit" class="flex-1 flex flex-col overflow-y-auto">
+            <form v-if="selected_submission" @submit.prevent="submit" class="flex-1 flex flex-col overflow-y-auto">
                 <header
                     class="h-16 border-b border-slate-200 dark:border-[#224249] bg-white/80 dark:bg-background-dark/80 backdrop-blur-md flex items-center justify-between px-8 sticky top-0 z-10 shrink-0">
                     <div class="flex items-center gap-4">
@@ -245,19 +245,19 @@
                                 <span class="material-symbols-outlined text-primary text-2xl">description</span>
                             </div>
                             <div>
-                                <h3 class="text-xl font-bold adventure-title">{{ store.submitting?.brief.title }}</h3>
+                                <h3 class="text-xl font-bold adventure-title">{{ store.submission?.brief.title }}</h3>
                                 <p class="text-sm text-slate-500">Submitted by <span
-                                        class="text-primary font-bold">{{ store.submitting?.student.first_name }} {{ store.submitting?.student.last_name }}</span> on {{ (new Date(store.submitting?.created_at as string)).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' } ) }}</p>
+                                        class="text-primary font-bold">{{ store.submission?.student.first_name }} {{ store.submission?.student.last_name }}</span> on {{ (new Date(store.submission?.created_at as string)).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' } ) }}</p>
                             </div>
                         </div>
                         <div
                             class="bg-white dark:bg-[#182f34] border border-slate-200 dark:border-[#224249] rounded-xl p-6 parchment-effect shadow-sm">
                             <div class="prose prose-sm dark:prose-invert max-w-none">
                                 <p class="text-slate-600 dark:text-slate-300 mb-4 italic leading-relaxed">
-                                    "{{ store.submitting?.message }}"
+                                    "{{ store.submission?.message }}"
                                 </p>
                                 <div class="flex flex-wrap gap-4 pt-4 border-t border-slate-100 dark:border-[#224249]">
-                                    <NuxtLink v-for="link in store.submitting?.links" target="_blank" class="flex items-center gap-2 text-xs font-bold text-primary bg-primary/5 px-3 py-2 rounded-lg border border-primary/20 hover:bg-primary/10 transition-colors"
+                                    <NuxtLink v-for="link in store.submission?.links" target="_blank" class="flex items-center gap-2 text-xs font-bold text-primary bg-primary/5 px-3 py-2 rounded-lg border border-primary/20 hover:bg-primary/10 transition-colors"
                                         :to="link[Object.keys(link)[0] as string]">
                                         <span class="material-symbols-outlined text-sm">link</span>
                                         {{ Object.keys(link)[0] }}
@@ -285,7 +285,7 @@
                                 <label class="text-xs font-black uppercase tracking-widest text-slate-400">Skill
                                     Proficiency Evaluation</label>
                                 <div class="space-y-3">
-                                    <div v-for="brief_skill_level in store.submitting?.brief?.brief_skill_levels"
+                                    <div v-for="brief_skill_level in store.submission?.brief?.brief_skill_levels"
                                         class="bg-white dark:bg-[#182f34] border border-slate-200 dark:border-[#224249] rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
                                         <div>
                                             <h4 class="font-bold text-sm tracking-wide">{{ brief_skill_level?.skill?.code }}: {{ brief_skill_level?.skill?.title }}</h4>
@@ -464,8 +464,8 @@
                             <span class="material-symbols-outlined text-2xl text-pirate-gold">warning</span>
                         </div>
                         <div class="flex flex-col">
-                            <h1 class="text-2xl font-bold tracking-tight">There's no submitting selected</h1>
-                            <p class="text-sm font-medium tracking-tight">Please select a submitting to correct</p>
+                            <h1 class="text-2xl font-bold tracking-tight">There's no submission selected</h1>
+                            <p class="text-sm font-medium tracking-tight">Please select a submission to correct</p>
                         </div>
                     </div>
                 </div>
