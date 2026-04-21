@@ -22,8 +22,8 @@ class Student extends User
         return $this->hasMany(SquadMember::class);
     }
 
-    public function submittings(){
-        return $this->hasMany(Submitting::class);
+    public function submissions(){
+        return $this->hasMany(Submission::class);
     }
 
     public function corrections(){
