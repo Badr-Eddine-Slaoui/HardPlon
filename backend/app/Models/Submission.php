@@ -6,20 +6,16 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class Submitting extends Model
+class Submission extends Model
 {
     use HasFactory, SoftDeletes;
-    protected $table = 'submittings';
+    protected $table = 'submissions';
     protected $fillable = [
         'brief_id',
         'student_id',
         'squad_id',
         'message',
-        'links',
-    ];
-
-    protected $casts = [
-        'links' => 'array',
+        'link',
     ];
 
     public function brief(){
@@ -32,5 +28,20 @@ class Submitting extends Model
 
     public function squad(){
         return $this->belongsTo(Squad::class);
+    }
+
+    public function evaluationJob()
+    {
+        return $this->hasOne(EvaluationJob::class);
+    }
+
+    public function problemSubmissions()
+    {
+        return $this->hasMany(ProblemSubmission::class);
+    }
+
+    public function problemSubmissionJob()
+    {
+        return $this->hasOne(ProblemSubmissionJob::class);
     }
 }
