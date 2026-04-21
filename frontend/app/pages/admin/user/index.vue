@@ -1,53 +1,55 @@
 <script setup lang="ts">
-    import { useUser } from '../../../../stores/user';
+import { useUser } from '../../../../stores/user';
 
-    useHead({
-        title: `Admin Dashboard - Users`
-    })
+useHead({
+    title: `Admin Dashboard - Users`
+})
 
-    const store = useUser();
+const store = useUser()
+const paginate = usePagination(store.fetchUsers.bind(store))
 
-    onMounted(async() => {
-        await store.fetchUsers();
-    })
 
-    function openArchiveModal(id: number): void {
-        const modal = document.getElementById('archive-modal') as HTMLElement;
-        modal.classList.remove('hidden');
+onMounted(async () => {
+    await paginate.fetchData();
+})
 
-        const form = modal.querySelector('form') as HTMLFormElement;
-        form.onsubmit = async (e) => {
-            e.preventDefault();
-            await store.archiveUser(id);
-            closeArchiveModal();
-        }
+function openArchiveModal(id: number): void {
+    const modal = document.getElementById('archive-modal') as HTMLElement;
+    modal.classList.remove('hidden');
+
+    const form = modal.querySelector('form') as HTMLFormElement;
+    form.onsubmit = async (e) => {
+        e.preventDefault();
+        await store.archiveUser(id);
+        closeArchiveModal();
     }
+}
 
-    function closeArchiveModal(): void {
-        const modal = document.getElementById('archive-modal') as HTMLElement;
-        modal.classList.add('hidden');
+function closeArchiveModal(): void {
+    const modal = document.getElementById('archive-modal') as HTMLElement;
+    modal.classList.add('hidden');
+}
+
+function openResurrectModal(id: number): void {
+    const modal = document.getElementById('resurrect-modal') as HTMLElement;
+    modal.classList.remove('hidden');
+
+    const form = modal.querySelector('form') as HTMLFormElement;
+    form.onsubmit = async (e) => {
+        e.preventDefault();
+        await store.restoreUser(id);
+        closeResurrectModal();
     }
+}
 
-    function openResurrectModal(id: number): void {
-        const modal = document.getElementById('resurrect-modal') as HTMLElement;
-        modal.classList.remove('hidden');
+function closeResurrectModal(): void {
+    const modal = document.getElementById('resurrect-modal') as HTMLElement;
+    modal.classList.add('hidden');
+}
 
-        const form = modal.querySelector('form') as HTMLFormElement;
-        form.onsubmit = async (e) => {
-            e.preventDefault();
-            await store.restoreUser(id);
-            closeResurrectModal();
-        }
-    }
-
-    function closeResurrectModal(): void {
-        const modal = document.getElementById('resurrect-modal') as HTMLElement;
-        modal.classList.add('hidden');
-    }
-
-    definePageMeta({
-        middleware: ['auth', 'admin']
-    })
+definePageMeta({
+    middleware: ['auth', 'admin']
+})
 </script>
 
 <template>
@@ -205,6 +207,10 @@
                         </table>
                     </div>
                 </div>
+
+                <!-- Pagination Controls -->
+                <Pagination :meta="store.meta" :per_page="paginate.perPage.value" @change="paginate.fetchData"
+                    @perPage="paginate.changePerPage" />
             </div>
             <!-- Empty Space at bottom -->
             <div class="p-8 mt-auto">
@@ -281,7 +287,8 @@
                 </div>
             </footer>
         </main>
-        <div id="archive-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-40 flex items-center justify-center p-4 hidden">
+        <div id="archive-modal"
+            class="fixed inset-0 bg-black/80 backdrop-blur-sm z-40 flex items-center justify-center p-4 hidden">
             <!-- Archive User Modal -->
             <div
                 class="relative w-full max-w-[500px] bg-white dark:bg-[#231010] border border-slate-200 dark:border-[#b50909]/30 rounded-xl shadow-2xl overflow-hidden z-50">
@@ -291,7 +298,8 @@
                 <div class="h-1.5 w-full bg-[#b50909]"></div>
                 <div class="p-8 flex flex-col items-center text-center">
                     <!-- Icon -->
-                    <div class="size-16 bg-[#b50909]/10 rounded-full flex items-center justify-center mb-6 text-[#b50909]">
+                    <div
+                        class="size-16 bg-[#b50909]/10 rounded-full flex items-center justify-center mb-6 text-[#b50909]">
                         <span class="material-symbols-outlined" style="font-size: 40px;">sailing</span>
                     </div>
                     <!-- HeadlineText Component -->
@@ -300,7 +308,8 @@
                     </h1>
                     <!-- BodyText Component -->
                     <p class="text-slate-600 dark:text-white text-base font-normal leading-relaxed pb-8 max-w-[400px]">
-                        This pirate will be sent to the archives. They will lose access to the ship’s logs and navigation
+                        This pirate will be sent to the archives. They will lose access to the ship’s logs and
+                        navigation
                         tools immediately. This action can be undone by the Fleet Admiral.
                     </p>
                     <!-- Action Buttons -->
@@ -323,7 +332,8 @@
                 </div>
             </div>
         </div>
-        <div id="resurrect-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-6 hidden">
+        <div id="resurrect-modal"
+            class="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-6 hidden">
             <div
                 class="bg-background-dark border border-primary/40 rounded-xl max-w-lg w-full shadow-[0_0_50px_-12px_rgba(13,204,242,0.3)] relative overflow-hidden">
                 <!-- Decorative Compass/Log Pose Icon -->
