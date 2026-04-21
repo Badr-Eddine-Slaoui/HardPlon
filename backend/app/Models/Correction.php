@@ -15,6 +15,7 @@ class Correction extends Model
         'student_id',
         'teacher_id',
         'message',
+        'result'
     ];
 
     public function brief(){
