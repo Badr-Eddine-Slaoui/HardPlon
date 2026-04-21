@@ -8,7 +8,7 @@ php artisan make:controller Api/LevelController;
 php artisan make:controller Api/SprintController;
 php artisan make:controller Api/SquadController;
 php artisan make:controller Api/BriefController;
-php artisan make:controller Api/SubmittingController;
+php artisan make:controller Api/SubmissionController;
 php artisan make:controller Api/CorrectionController;
 php artisan make:controller Api/CorrectionDetailController;
 php artisan make:controller Api/AuthController;

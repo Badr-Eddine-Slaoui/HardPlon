@@ -8,6 +8,6 @@ php artisan make:factory LevelFactory;
 php artisan make:factory SprintFactory;
 php artisan make:factory SquadFactory;
 php artisan make:factory BriefFactory;
-php artisan make:factory SubmittingFactory;
+php artisan make:factory SubmissionFactory;
 php artisan make:factory CorrectionFactory;
 php artisan make:factory CorrectionDetailFactory;

@@ -28,7 +28,7 @@ php artisan make:migration create_briefs_table;
 sleep 1;
 php artisan make:migration create_brief_skill_levels_table;
 sleep 1;
-php artisan make:migration create_submittings_table;
+php artisan make:migration create_submissions_table;
 sleep 1;
 php artisan make:migration create_corrections_table;
 sleep 1;

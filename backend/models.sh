@@ -13,7 +13,7 @@ php artisan make:model Squad;
 php artisan make:model SquadMember;
 php artisan make:model Brief;
 php artisan make:model BriefSkillLevel;
-php artisan make:model Submitting;
+php artisan make:model Submission;
 php artisan make:model Correction;
 php artisan make:model CorrectionDetail;
 php artisan make:model Admin;
