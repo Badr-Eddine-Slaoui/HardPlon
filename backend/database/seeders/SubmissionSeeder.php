@@ -2,17 +2,17 @@
 
 namespace Database\Seeders;
 
-use App\Models\Submitting;
+use App\Models\Submission;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
-class SubmittingSeeder extends Seeder
+class SubmissionSeeder extends Seeder
 {
     /**
      * Run the database seeds.
      */
     public function run(): void
     {
-        Submitting::factory(20)->create();
+        Submission::factory(20)->create();
     }
 }
