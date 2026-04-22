@@ -84,8 +84,8 @@ class BriefVersionController extends Controller
             $perPage = request()->get('per_page', 5);
 
             [$brief_versions, $archived_brief_versions] = Octane::concurrently([
-                fn() => BriefVersion::withoutTrashed()->paginate($perPage),
-                fn() => BriefVersion::onlyTrashed()->paginate($perPage),
+                fn() => BriefVersion::withoutTrashed()->orderByDesc('created_at')->paginate($perPage),
+                fn() => BriefVersion::onlyTrashed()->orderByDesc('created_at')->paginate($perPage),
             ]);
 
             return response()->json([
@@ -98,7 +98,7 @@ class BriefVersionController extends Controller
             return response()->json([
                 'success' => false,
                 'data' => null,
-                'message' => 'An error occurred while fetching brief versions: ' . $e->getMessage(),
+                'message' => 'Something went wrong. Please try again.',
                 'code' => $e->getCode(),
             ], 500);
         }
@@ -140,7 +140,7 @@ class BriefVersionController extends Controller
             return response()->json([
                 'success' => false,
                 'data' => null,
-                'message' => 'An error occurred while creating the brief version: ' . $e->getMessage(),
+                'message' => 'Something went wrong. Please try again.',
                 'code' => $e->getCode(),
             ], 500);
         }
@@ -171,7 +171,7 @@ class BriefVersionController extends Controller
             return response()->json([
                 'success' => false,
                 'data' => null,
-                'message' => 'An error occurred while fetching the brief version: ' . $e->getMessage(),
+                'message' => 'Something went wrong. Please try again.',
                 'code' => $e->getCode(),
             ], 500);
         }
@@ -213,7 +213,46 @@ class BriefVersionController extends Controller
             return response()->json([
                 'success' => false,
                 'data' => null,
-                'message' => 'An error occurred while deleting the brief version: ' . $e->getMessage(),
+                'message' => 'Something went wrong. Please try again.',
+                'code' => $e->getCode(),
+            ], 500);
+        }
+    }
+
+    public function restore(int $id)
+    {
+        try {
+            $brief_version = BriefVersion::onlyTrashed()->find($id);
+
+            if (!$brief_version) {
+                return response()->json([
+                    'success' => false,
+                    'data' => null,
+                    'message' => 'Brief version not found.'
+                ], 404);
+            }
+
+            $is_restored = $brief_version->restore();
+
+            if ($is_restored) {
+                return response()->json([
+                    'success' => true,
+                    'data' => compact('brief_version'),
+                    'message' => 'Successfully restored brief version.'
+                ], 200);
+            }
+
+            return response()->json([
+                'success' => false,
+                'data' => null,
+                'message' => 'Failed to restore brief version. Please try again.'
+            ], 400);
+
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'data' => null,
+                'message' => 'Something went wrong. Please try again.',
                 'code' => $e->getCode(),
             ], 500);
         }
