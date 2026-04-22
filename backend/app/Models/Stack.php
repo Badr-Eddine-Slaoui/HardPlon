@@ -14,6 +14,18 @@ class Stack extends Model
         'description',
     ];
 
+    protected static function booted()
+    {
+        static::deleted(function ($stack) {
+            $stack->stack_runners()->delete();
+        });
+
+        static::restored(function ($stack) {
+            $stack->stack_runners()->restore();
+        });
+
+    }
+
     public function briefs()
     {
         return $this->hasMany(Brief::class);
