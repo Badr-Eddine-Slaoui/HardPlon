@@ -18,6 +18,18 @@ class Level extends Model
 
     protected $appends = ["is_active"];
 
+    protected static function booted()
+    {
+        static::deleted(function ($level) {
+            $level->skill_levels()->delete();
+        });
+
+        static::restored(function ($level) {
+            $level->skill_levels()->restore();
+        });
+
+    }
+
     public function getIsActiveAttribute()
     {
         return !$this->trashed();
