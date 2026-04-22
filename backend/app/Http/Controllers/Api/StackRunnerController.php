@@ -19,8 +19,8 @@ class StackRunnerController extends Controller
             $perPage = request()->get('per_page', 5);
 
             [$stackRunners, $archivedStackRunners] = Octane::concurrently([
-                fn() => StackRunner::withoutTrashed()->paginate($perPage),
-                fn() => StackRunner::onlyTrashed()->paginate($perPage),
+                fn() => StackRunner::with(['stack', 'runner_version'])->withoutTrashed()->paginate($perPage),
+                fn() => StackRunner::with(['stack', 'runner_version'])->onlyTrashed()->paginate($perPage),
             ]);
 
             return response()->json([
@@ -33,7 +33,7 @@ class StackRunnerController extends Controller
             return response()->json([
                 'success' => false,
                 'data' => null,
-                'message' => 'An error occurred while fetching stack-runner associations: ' . $e->getMessage(),
+                'message' => "Something went wrong. Please try again.",
                 'code' => $e->getCode(),
             ], 500);
         }
@@ -70,7 +70,7 @@ class StackRunnerController extends Controller
             return response()->json([
                 'success' => false,
                 'data' => null,
-                'message' => 'An error occurred while associating runner with stack: ' . $e->getMessage(),
+                'message' => "Something went wrong. Please try again.",
                 'code' => $e->getCode(),
             ], 500);
         }
@@ -102,7 +102,7 @@ class StackRunnerController extends Controller
             return response()->json([
                 'success' => false,
                 'data' => null,
-                'message' => 'An error occurred while fetching stack-runner association: ' . $e->getMessage(),
+                'message' => "Something went wrong. Please try again.",
                 'code' => $e->getCode(),
             ], 500);
         }
@@ -148,7 +148,7 @@ class StackRunnerController extends Controller
             return response()->json([
                 'success' => false,
                 'data' => null,
-                'message' => 'An error occurred while updating stack-runner association: ' . $e->getMessage(),
+                'message' => "Something went wrong. Please try again.",
                 'code' => $e->getCode(),
             ], 500);
         }
@@ -190,7 +190,7 @@ class StackRunnerController extends Controller
             return response()->json([
                 'success' => false,
                 'data' => null,
-                'message' => 'An error occurred while deleting stack-runner association: ' . $e->getMessage(),
+                'message' => "Something went wrong. Please try again.",
                 'code' => $e->getCode(),
             ], 500);
         }
