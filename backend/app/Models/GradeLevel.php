@@ -29,6 +29,18 @@ class GradeLevel extends Model
         'is_nearly_empty'
     ];
 
+    protected static function booted()
+    {
+        static::deleted(function ($grade_level) {
+            $grade_level->formations()->delete();
+        });
+
+        static::restored(function ($grade_level) {
+            $grade_level->formations()->restore();
+        });
+
+    }
+
     public function is_full(): bool{
         return $this->students_count >= $this->capacity;
     }
