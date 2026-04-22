@@ -16,6 +16,18 @@ class Squad extends Model
         'member_count',
     ];
 
+    protected static function booted()
+    {
+        static::deleted(function ($squad) {
+            $squad->squad_members()->delete();
+        });
+
+        static::restored(function ($squad) {
+            $squad->squad_members()->restore();
+        });
+
+    }
+
     public function sprint(){
         return $this->belongsTo(Sprint::class);
     }
