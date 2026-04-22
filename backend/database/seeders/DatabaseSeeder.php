@@ -27,9 +27,18 @@ class DatabaseSeeder extends Seeder
             SkillLevelSeeder::class,
             SprintSeeder::class,
             SprintSkillSeeder::class,
+            LanguageSeeder::class,
+            RunnerSeeder::class,
+            RunnerVersionSeeder::class,
+            StackSeeder::class,
+            StackRunnerSeeder::class,
             BriefSeeder::class,
             BriefSkillLevelSeeder::class,
-            LanguageSeeder::class,
+            BriefVersionSeeder::class,
+            ProblemSeeder::class,
+            ProblemTestCaseSeeder::class,
+            SubmissionSeeder::class,
+            ProblemSubmissionSeeder::class
         ]);
 
         /* // 1️⃣ Academic structure
