@@ -18,6 +18,7 @@ return new class extends Migration
             $table->text('description')->nullable();
             $table->enum('status', ["active", "deprecated", "disabled"])->default('active');
             $table->timestamps();
+            $table->softDeletes();
         });
     }
 
