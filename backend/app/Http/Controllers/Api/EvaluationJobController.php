@@ -68,7 +68,7 @@ class EvaluationJobController extends Controller
             return response()->json([
                 "success" => false,
                 "data" => null,
-                "message" => "An error occurred while fetching the evaluation job: " . $e->getMessage(),
+                "message" => "Something went wrong. Please try again.",
                 "code" => $e->getCode(),
             ], 500);
         }
@@ -117,7 +117,7 @@ class EvaluationJobController extends Controller
             return response()->json([
                 "success" => false,
                 "data" => null,
-                "message" => "An error occurred while updating the evaluation job: " . $e->getMessage(),
+                "message" => "Something went wrong. Please try again.",
                 "code" => $e->getCode(),
             ], 500);
         }
