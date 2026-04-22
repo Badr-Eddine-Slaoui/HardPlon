@@ -32,7 +32,7 @@ class ProblemController extends Controller
             return response()->json([
                 'success' => false,
                 'data' => null,
-                'message' => 'An error occurred while fetching problems: ' . $e->getMessage(),
+                'message' => "Something went wrong. Please try again.",
                 'code' => $e->getCode(),
             ], 500);
         }
@@ -75,7 +75,7 @@ class ProblemController extends Controller
             return response()->json([
                 'success' => false,
                 'data' => null,
-                'message' => 'An error occurred while creating the problem: ' . $e->getMessage(),
+                'message' => "Something went wrong. Please try again.",
                 'code' => $e->getCode(),
             ], 500);
         }
@@ -107,7 +107,7 @@ class ProblemController extends Controller
             return response()->json([
                 'success' => false,
                 'data' => null,
-                'message' => 'An error occurred while fetching the problem: ' . $e->getMessage(),
+                'message' => "Something went wrong. Please try again.",
                 'code' => $e->getCode(),
             ], 500);
         }
@@ -159,7 +159,7 @@ class ProblemController extends Controller
             return response()->json([
                 'success' => false,
                 'data' => null,
-                'message' => 'An error occurred while updating the problem: ' . $e->getMessage(),
+                'message' => "Something went wrong. Please try again.",
                 'code' => $e->getCode(),
             ], 500);
         }
@@ -200,7 +200,7 @@ class ProblemController extends Controller
             return response()->json([
                 'success' => false,
                 'data' => null,
-                'message' => 'An error occurred while deleting the problem: ' . $e->getMessage(),
+                'message' => "Something went wrong. Please try again.",
                 'code' => $e->getCode(),
             ], 500);
         }
