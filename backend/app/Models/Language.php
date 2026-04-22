@@ -15,6 +15,18 @@ class Language extends Model
         'run_command',
     ];
 
+    protected static function booted()
+    {
+        static::deleted(function ($language) {
+            $language->problems()->delete();
+        });
+
+        static::restored(function ($language) {
+            $language->problems()->restore();
+        });
+
+    }
+
     public function problems()
     {
         return $this->hasMany(Problem::class);
