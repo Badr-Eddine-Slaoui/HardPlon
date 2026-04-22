@@ -6,106 +6,216 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\LevelRequest;
 use App\Models\Level;
 use Illuminate\Http\Request;
+use Laravel\Octane\Facades\Octane;
 
 class LevelController extends Controller
 {
     public function index()
     {
-        $levels = Level::withTrashed()->orderByDesc('created_at')->get();
-        $archived_levels = Level::onlyTrashed()->get();
+        try {
+            $per_page = request()->get("per_page", 5);
 
-        return response()->json([
-            "success" => true,
-            "data" => compact("levels", "archived_levels")
-        ], 200);
+            [$levels, $archived_levels] = Octane::concurrently([
+                fn() => Level::withoutTrashed()->orderByDesc('created_at')->paginate($per_page),
+                fn() => Level::onlyTrashed()->orderByDesc('created_at')->paginate($per_page)
+            ]);
+
+            return response()->json([
+                "success" => true,
+                "data" => compact("levels", "archived_levels"),
+                "message" => "Successfully fetched levels."
+            ], 200);
+
+        } catch (\Throwable $e) {
+            return response()->json([
+                "success" => false,
+                "data" => null,
+                "message" => "Something went wrong. Please try again.",
+                "code" => $e->getCode()
+            ], 500);
+        }
     }
 
-    public function show(Request $request, Level $level)
+    public function show(Request $request, int $id)
     {
-        return response()->json([
-            "success"=> true,
-            "data" => compact("level")
-        ], 200);
+        try {
+            $level = Level::withTrashed()->find($id);
+
+            if (!$level) {
+                return response()->json([
+                    "success" => false,
+                    "data" => null,
+                    "message" => "Level not found."
+                ], 404);
+            }
+
+            return response()->json([
+                "success"=> true,
+                "data" => compact("level"),
+                "message" => "Successfully fetched level."
+            ], 200);
+
+        } catch (\Throwable $e) {
+            return response()->json([
+                "success" => false,
+                "data" => null,
+                "message" => "Something went wrong. Please try again.",
+                "code" => $e->getCode()
+            ], 500);
+        }
     }
 
     public function store(LevelRequest $request)
     {
-        $level = Level::create([
-            "name"=> $request->name,
-            "description" => $request->description,
-            "order" => $request->order
-        ]);
+        try {
+            $level = Level::create([
+                "name"=> $request->name,
+                "description" => $request->description,
+                "order" => $request->order
+            ]);
 
-        if ($level) {
+            if ($level) {
+                return response()->json([
+                    "success" => true,
+                    "data" => compact("level"),
+                    "message" => "Successfully created level."
+                ], 200);
+            }
+
             return response()->json([
-                "success" => true,
-                "data" => compact("level"),
-                "message" => "Successfully created level."
-            ], 200);
-        }
+                "success" => false,
+                "data" => null,
+                "message" => "Something went wrong. Please try again.",
+            ], 400);
 
-        return response()->json([
-            "success" => false,
-            "message" => "Something went wrong. Please try again."
-        ], 500);
+        } catch (\Throwable $e) {
+            return response()->json([
+                "success" => false,
+                "data" => null,
+                "message" => "Something went wrong. Please try again.",
+                "code" => $e->getCode()
+            ], 500);
+        }
     }
 
-    public function update(LevelRequest $request, Level $level)
+    public function update(LevelRequest $request, int $id)
     {
-        $is_updated = $level->update([
-            "name"=> $request->name,
-            "description" => $request->description,
-            "order" => $request->order
-        ]);
+        try {
+            $level = Level::withTrashed()->find($id);
 
-        if ($is_updated) {
+            if (!$level) {
+                return response()->json([
+                    "success" => false,
+                    "data" => null,
+                    "message" => "Level not found."
+                ], 404);
+            }
+
+            $is_updated = $level->update([
+                "name"=> $request->name,
+                "description" => $request->description,
+                "order" => $request->order
+            ]);
+
+            if ($is_updated) {
+                return response()->json([
+                    "success" => true,
+                    "data" => compact("level"),
+                    "message" => "Successfully updated level."
+                ], 200);
+            }
+
             return response()->json([
-                "success" => true,
-                "data" => compact("level"),
-                "message" => "Successfully updated level."
-            ], 200);
-        }
+                "success"=> false,
+                "data" => null,
+                "message" => "Something went wrong. Please try again."
+            ], 400);
 
-        return response()->json([
-            "success"=> false,
-            "message" => "Something went wrong. Please try again."
-        ], 500);
+        } catch (\Throwable $e) {
+            return response()->json([
+                "success" => false,
+                "data" => null,
+                "message" => "Something went wrong. Please try again.",
+                "code" => $e->getCode()
+            ], 500);
+        }
     }
 
-    public function destroy(Level $level)
+    public function destroy(int $id)
     {
-        $is_deleted = $level->delete();
+        try{
+            $level = Level::withoutTrashed()->find($id);
 
-        if ($is_deleted) {
+            if (!$level) {
+                return response()->json([
+                    "success" => false,
+                    "data" => null,
+                    "message" => "Level not found."
+                ], 404);
+            }
+
+            $is_deleted = $level->delete();
+
+            if ($is_deleted) {
+                return response()->json([
+                    "success" => true,
+                    "data" => compact("level"),
+                    "message" => "Successfully deleted level."
+                ], 200);
+            }
+
             return response()->json([
-                "success" => true,
-                "data" => compact("level"),
-                "message" => "Successfully deleted level."
-            ], 200);
-        }
+                "success"=> false,
+                "data" => null,
+                "message" => "Something went wrong. Please try again."
+            ], 400);
 
-        return response()->json([
-            "success"=> false,
-            "message" => "Something went wrong. Please try again."
-        ], 500);
+        } catch (\Throwable $e) {
+            return response()->json([
+                "success" => false,
+                "data" => null,
+                "message" => "Something went wrong. Please try again.",
+                "code" => $e->getCode()
+            ], 500);
+        }
     }
 
     public function restore(int $id)
     {
-        $level = Level::withTrashed()->find($id);
-        $is_restored = $level->restore();
+        try {
+            $level = Level::withTrashed()->find($id);
 
-        if ($is_restored) {
+            if (!$level) {
+                return response()->json([
+                    "success" => false,
+                    "data" => null,
+                    "message" => "Level not found."
+                ], 404);
+            }
+
+            $is_restored = $level->restore();
+
+            if ($is_restored) {
+                return response()->json([
+                    "success" => true,
+                    "data" => compact("level"),
+                    "message" => "Successfully restored level."
+                ], 200);
+            }
+
             return response()->json([
-                "success" => true,
-                "data" => compact("level"),
-                "message" => "Successfully restored level."
-            ], 200);
-        }
+                "success"=> false,
+                "data" => null,
+                "message" => "Something went wrong. Please try again."
+            ], 400);
 
-        return response()->json([
-            "success"=> false,
-            "message" => "Something went wrong. Please try again."
-        ], 500);
+        } catch (\Throwable $e) {
+            return response()->json([
+                "success" => false,
+                "data" => null,
+                "message" => "Something went wrong. Please try again.",
+                "code" => $e->getCode()
+            ], 500);
+        }
     }
 }
