@@ -21,6 +21,20 @@ class Problem extends Model
         'order_index',
     ];
 
+    protected static function booted()
+    {
+        static::deleted(function ($problem) {
+            $problem->test_cases()->delete();
+            $problem->submissions()->delete();
+        });
+
+        static::restored(function ($problem) {
+            $problem->test_cases()->restore();
+            $problem->submissions()->restore();
+        });
+
+    }
+
     public function brief()
     {
         return $this->belongsTo(Brief::class);
