@@ -25,6 +25,25 @@ class Brief extends Model
 
     protected $appends = ["is_active"];
 
+    protected static function booted()
+    {
+        static::deleted(function ($brief) {
+            $brief->brief_skill_levels()->delete();
+            $brief->problems()->delete();
+            $brief->submittions()->delete();
+            $brief->corrections()->delete();
+            $brief->brief_versions()->delete();
+        });
+
+        static::restored(function ($brief) {
+            $brief->brief_skill_levels()->restore();
+            $brief->problems()->restore();
+            $brief->submittions()->restore();
+            $brief->corrections()->restore();
+            $brief->brief_versions()->restore();
+        });
+    }
+
     public function getIsActiveAttribute()
     {
         return !$this->trashed();
