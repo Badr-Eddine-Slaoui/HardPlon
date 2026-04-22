@@ -3,9 +3,11 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class RunnerVersion extends Model
 {
+    use SoftDeletes;
     protected $fillable = [
         'runner_id',
         'version',
@@ -18,6 +20,18 @@ class RunnerVersion extends Model
     protected $casts = [
         'default_config' => 'array',
     ];
+
+    protected static function booted()
+    {
+        static::deleted(function ($runnerVersion) {
+            $runnerVersion->stack_runners()->delete();
+        });
+
+        static::restored(function ($runnerVersion) {
+            $runnerVersion->stack_runners()->restore();
+        });
+
+    }
 
     public function runner()
     {
