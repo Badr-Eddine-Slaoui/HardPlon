@@ -12,6 +12,18 @@ class Teacher extends User
         static::addGlobalScope('teacher', function (Builder $builder) {
             $builder->where('users.role', 'TEACHER');
         });
+
+        static::deleted(function ($teacher) {
+            $teacher->class_teachers()->delete();
+            $teacher->briefs()->delete();
+            $teacher->corrections()->delete();
+        });
+
+        static::restored(function ($teacher) {
+            $teacher->class_teachers()->restore();
+            $teacher->briefs()->restore();
+            $teacher->corrections()->restore();
+        });
     }
 
     public function class_teachers(){
