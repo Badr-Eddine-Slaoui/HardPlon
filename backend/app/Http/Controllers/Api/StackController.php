@@ -33,7 +33,7 @@ class StackController extends Controller
             return response()->json([
                 'success' => false,
                 'data' => null,
-                'message' => 'An error occurred while fetching stacks: ' . $e->getMessage(),
+                'message' => "Something went wrong. Please try again.",
                 'code' => $e->getCode(),
             ], 500);
         }
@@ -69,7 +69,7 @@ class StackController extends Controller
             return response()->json([
                 'success' => false,
                 'data' => null,
-                'message' => 'An error occurred while creating stack: ' . $e->getMessage(),
+                'message' => "Something went wrong. Please try again.",
                 'code' => $e->getCode(),
             ], 500);
         }
@@ -101,7 +101,7 @@ class StackController extends Controller
             return response()->json([
                 'success' => false,
                 'data' => null,
-                'message' => 'An error occurred while fetching stack: ' . $e->getMessage(),
+                'message' => "Something went wrong. Please try again.",
                 'code' => $e->getCode(),
             ], 500);
         }
@@ -146,7 +146,7 @@ class StackController extends Controller
             return response()->json([
                 'success' => false,
                 'data' => null,
-                'message' => 'An error occurred while updating stack: ' . $e->getMessage(),
+                'message' => "Something went wrong. Please try again.",
                 'code' => $e->getCode(),
             ], 500);
         }
@@ -188,7 +188,7 @@ class StackController extends Controller
             return response()->json([
                 'success' => false,
                 'data' => null,
-                'message' => 'An error occurred while deleting stack: ' . $e->getMessage(),
+                'message' => "Something went wrong. Please try again.",
                 'code' => $e->getCode(),
             ], 500);
         }
