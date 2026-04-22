@@ -19,6 +19,20 @@ class Skill extends Model
 
     protected $appends = ["is_active"];
 
+    protected static function booted()
+    {
+        static::deleted(function ($skill) {
+            $skill->sprint_skills()->delete();
+            $skill->skill_levels()->delete();
+        });
+
+        static::restored(function ($skill) {
+            $skill->sprint_skills()->restore();
+            $skill->skill_levels()->restore();
+        });
+
+    }
+
     public function getIsActiveAttribute()
     {
         return !$this->trashed();
