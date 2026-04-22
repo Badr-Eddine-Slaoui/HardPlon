@@ -23,6 +23,22 @@ class ClassGroup extends Model
         'is_active'
     ];
 
+    protected static function booted()
+    {
+        static::deleted(function ($class_group) {
+            $class_group->students()->delete();
+            $class_group->main_teacher()->delete();
+            $class_group->sub_teacher()->delete();
+        });
+
+        static::restored(function ($class_group) {
+            $class_group->students()->restore();
+            $class_group->main_teacher()->restore();
+            $class_group->sub_teacher()->restore();
+        });
+
+    }
+
     public function getStudentsCountAttribute(){
         return $this->students()->count();
     }
