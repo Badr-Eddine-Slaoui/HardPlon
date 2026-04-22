@@ -12,123 +12,181 @@ use Illuminate\Support\Facades\Redis;
 class SubmissionController extends Controller
 {
     public function get_student_submissions(?int $id = null){
-        $submissions = Submission::withoutTrashed()
-            ->with(["student", "squad.squad_members.student", "brief.sprint", "brief.class_group", "brief.teacher", "brief.brief_skill_levels.skill", "brief.brief_skill_levels.level"])
-            ->where("student_id", $id ?? Auth::id())
-            ->orderByDesc("created_at")
-            ->get();
-        return response()->json([
-            "success" => true,
-            "data" => compact("submissions")
-        ], 200);
+
+        try {
+            $submissions = Submission::withoutTrashed()
+                ->with(["student", "squad.squad_members.student", "brief.sprint", "brief.class_group", "brief.teacher", "brief.brief_skill_levels.skill", "brief.brief_skill_levels.level"])
+                ->where("student_id", $id ?? Auth::id())
+                ->orderByDesc("created_at")
+                ->get();
+
+            return response()->json([
+                "success" => true,
+                "data" => compact("submissions"),
+                "message" => "Successfully fetched submissions."
+            ], 200);
+        } catch (\Throwable $e) {
+            return response()->json([
+                "success" => false,
+                "data" => null,
+                "message" => "Something went wrong. Please try again.",
+                "code" => $e->getCode()
+            ], 500);
+        }
     }
 
-    public function show(Request $request, Submission $submission)
+    public function show(Request $request, int $id)
     {
-        $submission->loadMissing(["student", "squad.squad_members.student", "brief.sprint", "brief.class_group", "brief.teacher", "brief.brief_skill_levels.skill", "brief.brief_skill_levels.level"]);
-        return response()->json([
-            "success"=> true,
-            "data" => compact("submission")
-        ], 200);
+        try {
+            $submission = Submission::with(["student", "squad.squad_members.student", "brief.sprint", "brief.class_group", "brief.teacher", "brief.brief_skill_levels.skill", "brief.brief_skill_levels.level"])->find($id);
+
+            if (!$submission) {
+                return response()->json([
+                    "success" => false,
+                    "data" => null,
+                    "message" => "Submission not found."
+                ], 404);
+            }
+
+            return response()->json([
+                "success"=> true,
+                "data" => compact("submission"),
+                "message" => "Successfully fetched submission."
+            ], 200);
+
+        } catch (\Throwable $e) {
+            return response()->json([
+                "success" => false,
+                "data" => null,
+                "message" => "Something went wrong. Please try again.",
+                "code" => $e->getCode()
+            ], 500);
+        }
     }
 
     public function store(SubmissionRequest $request)
     {
-        $submission = Submission::create([
-            'brief_id' => $request->brief_id,
-            'student_id' => Auth::id(),
-            'squad_id' => $request->squad_id,
-            'message' => $request->message,
-            'link' => $request->link,
-        ]);
+        try {
+            $submission = Submission::create([
+                'brief_id' => $request->brief_id,
+                'student_id' => Auth::id(),
+                'squad_id' => $request->squad_id,
+                'message' => $request->message,
+                'link' => $request->link,
+            ]);
 
-        if (!$submission) {
+            if (!$submission) {
+                return response()->json([
+                    "success"=> false,
+                    "message" => "Something went wrong. Please try again."
+                ], 400);
+            }
+
+            $job = $submission->evaluationJob()->create([
+                'status' => 'pending',
+            ]);
+
+            if (!$job) {
+                return response()->json([
+                    "success"=> false,
+                    "message" => "Submission created but failed to create evaluation job. Please contact support."
+                ], 400);
+            }
+
+            Redis::publish('evaluation.jobs.created', json_encode([
+                'job_id' => $job->id,
+            ]));
+
+            return response()->json([
+                "success" => true,
+                "data" => compact("submission"),
+                "message" => "Successfully created submission."
+            ], 201);
+
+        } catch (\Throwable $e) {
+            return response()->json([
+                "success" => false,
+                "data" => null,
+                "message" => "Something went wrong. Please try again.",
+                "code" => $e->getCode()
+            ], 500);
+        }
+    }
+
+    public function destroy(int $id)
+    {
+        try {
+            $submission = Submission::withoutTrashed()->find($id);
+
+            if (!$submission) {
+                return response()->json([
+                    "success" => false,
+                    "data" => null,
+                    "message" => "Submission not found."
+                ], 404);
+            }
+
+            $is_deleted = $submission->delete();
+
+            if ($is_deleted) {
+                return response()->json([
+                    "success" => true,
+                    "data" => compact("submission"),
+                    "message" => "Successfully deleted submission."
+                ], 200);
+            }
+
             return response()->json([
                 "success"=> false,
+                "data" => null,
                 "message" => "Something went wrong. Please try again."
             ], 400);
-        }
 
-        $job = $submission->evaluationJob()->create([
-            'status' => 'pending',
-        ]);
-
-        if (!$job) {
+        } catch (\Throwable $e) {
             return response()->json([
-                "success"=> false,
-                "message" => "Submission created but failed to create evaluation job. Please contact support."
-            ], 400);
+                "success" => false,
+                "data" => null,
+                "message" => "Something went wrong. Please try again.",
+                "code" => $e->getCode()
+            ], 500);
         }
-
-        Redis::publish('evaluation.jobs.created', json_encode([
-            'job_id' => $job->id,
-        ]));
-
-        return response()->json([
-            "success" => true,
-            "data" => compact("submission"),
-            "message" => "Successfully created submission."
-        ], 201);
-    }
-
-    public function update(SubmissionRequest $request, Submission $submission)
-    {
-        $is_updated = $submission->update([
-            'brief_id' => $request->brief_id,
-            'student_id' => $request->student_id,
-            'squad_id' => $request->squad_id,
-            'message' => $request->message,
-            'link' => $request->link,
-        ]);
-
-        if ($is_updated) {
-            return response()->json([
-                "success" => true,
-                "data" => compact("submission"),
-                "message" => "Successfully updated submission."
-            ], 200);
-        }
-
-        return response()->json([
-            "success"=> false,
-            "message" => "Something went wrong. Please try again."
-        ], 500);
-    }
-
-    public function destroy(Submission $submission)
-    {
-        $is_deleted = $submission->delete();
-
-        if ($is_deleted) {
-            return response()->json([
-                "success" => true,
-                "data" => compact("submission"),
-                "message" => "Successfully deleted submission."
-            ], 200);
-        }
-
-        return response()->json([
-            "success"=> false,
-            "message" => "Something went wrong. Please try again."
-        ], 500);
     }
 
     public function restore(int $id)
     {
-        $submission = Submission::withTrashed()->find($id);
-        $is_restored = $submission->restore();
+        try {
+            $submission = Submission::onlyTrashed()->find($id);
 
-        if ($is_restored) {
+            if (!$submission) {
+                return response()->json([
+                    "success" => false,
+                    "data" => null,
+                    "message" => "Submission not found."
+                ], 404);
+            }
+
+            $is_restored = $submission->restore();
+
+            if ($is_restored) {
+                return response()->json([
+                    "success" => true,
+                    "data" => compact("submission"),
+                    "message" => "Successfully restored submission."
+                ], 200);
+            }
+
             return response()->json([
-                "success" => true,
-                "data" => compact("submission"),
-                "message" => "Successfully restored submission."
-            ], 200);
+                "success"=> false,
+                "data" => null,
+                "message" => "Something went wrong. Please try again."
+            ], 400);
+        } catch (\Throwable $e) {
+            return response()->json([
+                "success" => false,
+                "data" => null,
+                "message" => "Something went wrong. Please try again.",
+                "code" => $e->getCode()
+            ], 500);
         }
-
-        return response()->json([
-            "success"=> false,
-            "message" => "Something went wrong. Please try again."
-        ], 500);
     }
 }
