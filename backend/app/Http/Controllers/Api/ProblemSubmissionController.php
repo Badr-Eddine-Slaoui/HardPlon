@@ -37,7 +37,7 @@ class ProblemSubmissionController extends Controller
             return response()->json([
                 'success' => false,
                 'data' => null,
-                'message' => 'An error occurred while fetching problem submissions: ' . $e->getMessage(),
+                'message' => "Something went wrong. Please try again.",
                 'code' => $e->getCode(),
             ], 500);
         }
@@ -49,7 +49,7 @@ class ProblemSubmissionController extends Controller
     public function store(ProblemSubmissionRequest $request)
     {
         try {
-            
+
             $submission = Submission::find($request->submission_id);
 
             if (!$submission) {
@@ -98,7 +98,7 @@ class ProblemSubmissionController extends Controller
             return response()->json([
                 'success' => false,
                 'data' => null,
-                'message' => 'An error occurred while creating the problem submission: ' . $e->getMessage(),
+                'message' => "Something went wrong. Please try again.",
                 'code' => $e->getCode(),
             ], 500);
         }
@@ -130,7 +130,7 @@ class ProblemSubmissionController extends Controller
             return response()->json([
                 'success' => false,
                 'data' => null,
-                'message' => 'An error occurred while fetching the problem submission: ' . $e->getMessage(),
+                'message' => "Something went wrong. Please try again.",
                 'code' => $e->getCode(),
             ], 500);
         }
@@ -172,7 +172,7 @@ class ProblemSubmissionController extends Controller
             return response()->json([
                 'success' => false,
                 'data' => null,
-                'message' => 'An error occurred while deleting the problem submission: ' . $e->getMessage(),
+                'message' => "Something went wrong. Please try again.",
                 'code' => $e->getCode(),
             ], 500);
         }
