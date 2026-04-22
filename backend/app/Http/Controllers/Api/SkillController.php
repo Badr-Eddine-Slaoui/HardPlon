@@ -7,145 +7,262 @@ use App\Http\Requests\SkillRequest;
 use App\Models\Skill;
 use App\Models\SkillLevel;
 use Illuminate\Http\Request;
+use Laravel\Octane\Facades\Octane;
 
 class SkillController extends Controller
 {
     public function index()
     {
-        $skills = Skill::withTrashed()->with(['formation', "skill_levels.level"])->orderByDesc('created_at')->get();
-        $archived_skills = Skill::onlyTrashed()->get();
+        try {
+            $per_page = request()->get("per_page", 5);
 
-        return response()->json([
-            "success" => true,
-            "data" => compact("skills", "archived_skills")
-        ], 200);
+            [$skills, $archived_skills] = Octane::concurrently([
+                fn() => Skill::withoutTrashed()->with(['formation', "skill_levels.level"])->orderByDesc('created_at')->paginate($per_page),
+                fn() => Skill::onlyTrashed()->with(['formation', "skill_levels.level"])->orderByDesc('created_at')->paginate($per_page),
+            ]);
+
+            return response()->json([
+                "success" => true,
+                "data" => compact("skills", "archived_skills"),
+                "message" => "Successfully fetched skills."
+            ], 200);
+
+        } catch (\Throwable $e) {
+            return response()->json([
+                "success" => false,
+                "data" => null,
+                "message" => "Something went wrong. Please try again.",
+                "code" => $e->getCode()
+            ], 500);
+        }
     }
 
     public function get_by_formaction_id(Request $request, int $id)
     {
-        $skills = Skill::withoutTrashed()
-            ->where("formation_id", $id)
-            ->with(['formation', "skill_levels.level"])
-            ->orderByDesc("created_at")
-            ->get();
+        try {
+            $skills = Skill::withoutTrashed()
+                ->where("formation_id", $id)
+                ->with(['formation', "skill_levels.level"])
+                ->orderByDesc("created_at")
+                ->get();
 
-        return response()->json([
-            "success"=> true,
-            "data" => compact("skills")
-        ], 200);
+            return response()->json([
+                "success"=> true,
+                "data" => compact("skills"),
+                "message" => "Successfully fetched skills."
+            ], 200);
+
+        } catch (\Throwable $e) {
+            return response()->json([
+                "success" => false,
+                "data" => null,
+                "message" => "Something went wrong. Please try again.",
+                "code" => $e->getCode()
+            ], 500);
+        }
     }
 
-    public function show(Request $request, Skill $skill)
+    public function show(Request $request, int $id)
     {
-        $skill->loadMissing(["formation", "skill_levels.level"]);
-        return response()->json([
-            "success"=> true,
-            "data" => compact("skill")
-        ], 200);
+        try {
+            $skill = Skill::with(['formation', "skill_levels.level"])->withoutTrashed()->find($id);
+
+            if (!$skill) {
+                return response()->json([
+                    "success" => false,
+                    "data" => null,
+                    "message" => "Skill not found."
+                ], 404);
+            }
+
+            return response()->json([
+                "success"=> true,
+                "data" => compact("skill"),
+                "message" => "Successfully fetched skill."
+            ], 200);
+
+        } catch (\Throwable $e) {
+            return response()->json([
+                "success" => false,
+                "data" => null,
+                "message" => "Something went wrong. Please try again.",
+                "code" => $e->getCode()
+            ], 500);
+        }
     }
 
     public function store(SkillRequest $request)
     {
-        $skill = Skill::create([
-            "formation_id" => $request->formation_id,
-            "code" => $request->code,
-            "title" => $request->title,
-            "description" => $request->description
-        ]);
+        try {
+            $skill = Skill::create([
+                "formation_id" => $request->formation_id,
+                "code" => $request->code,
+                "title" => $request->title,
+                "description" => $request->description
+            ]);
 
-        if ($skill) {
+            if ($skill) {
 
-            foreach ($request->skill_levels as $item) {
-                SkillLevel::create([
-                    'skill_id' => $skill->id,
-                    'level_id' => $item['level_id'],
-                    'criteria' => $item['criteria'],
-                ]);
+                foreach ($request->skill_levels as $item) {
+                    SkillLevel::create([
+                        'skill_id' => $skill->id,
+                        'level_id' => $item['level_id'],
+                        'criteria' => $item['criteria'],
+                    ]);
+                }
+
+                return response()->json([
+                    "success" => true,
+                    "data" => compact("skill"),
+                    "message" => "Successfully created skill."
+                ], 200);
             }
 
             return response()->json([
-                "success" => true,
-                "data" => compact("skill"),
-                "message" => "Successfully created skill."
-            ], 200);
-        }
+                "success" => false,
+                "data" => null,
+                "message" => "Something went wrong. Please try again."
+            ], 400);
 
-        return response()->json([
-            "success" => false,
-            "data" => $request->all(),
-            "message" => "Something went wrong. Please try again."
-        ], 500);
+        } catch (\Throwable $e) {
+            return response()->json([
+                "success" => false,
+                "data" => null,
+                "message" => "Something went wrong. Please try again.",
+                "code" => $e->getCode()
+            ], 500);
+        }
     }
 
-    public function update(SkillRequest $request, Skill $skill)
+    public function update(SkillRequest $request, int $id)
     {
-        $is_updated = $skill->update([
-            "formation_id" => $request->formation_id,
-            "code" => $request->code,
-            "title" => $request->title,
-            "description" => $request->description
-        ]);
+        try {
+            $skill = Skill::withoutTrashed()->find($id);
 
-        if ($is_updated) {
-            $skill->skill_levels()->whereNotIn("level_id", array_map(fn($item) => $item["level_id"], $request->skill_levels))->delete();
-            foreach ($request->skill_levels as $item) {
-                SkillLevel::updateOrCreate([
-                    "skill_id" => $skill->id,
-                    "level_id" => $item["level_id"],
-                ], [
-                    "skill_id" => $skill->id,
-                    "level_id" => $item["level_id"],
-                    "criteria" => $item["criteria"],
-                ]);
+            if (!$skill) {
+                return response()->json([
+                    "success" => false,
+                    "data" => null,
+                    "message" => "Skill not found."
+                ], 404);
+            }
+
+            $is_updated = $skill->update([
+                "formation_id" => $request->formation_id,
+                "code" => $request->code,
+                "title" => $request->title,
+                "description" => $request->description
+            ]);
+
+            if ($is_updated) {
+                $skill->skill_levels()->whereNotIn("level_id", array_map(fn($item) => $item["level_id"], $request->skill_levels))->delete();
+                foreach ($request->skill_levels as $item) {
+                    SkillLevel::updateOrCreate([
+                        "skill_id" => $skill->id,
+                        "level_id" => $item["level_id"],
+                    ], [
+                        "skill_id" => $skill->id,
+                        "level_id" => $item["level_id"],
+                        "criteria" => $item["criteria"],
+                    ]);
+                }
+
+                return response()->json([
+                    "success" => true,
+                    "data" => compact("skill"),
+                    "message" => "Successfully updated skill."
+                ], 200);
             }
 
             return response()->json([
-                "success" => true,
-                "data" => compact("skill"),
-                "message" => "Successfully updated skill."
-            ], 200);
+                "success"=> false,
+                "data" => null,
+                "message" => "Something went wrong. Please try again."
+            ], 400);
+        } catch (\Throwable $e) {
+            return response()->json([
+                "success" => false,
+                "data" => null,
+                "message" => "Something went wrong. Please try again.",
+                "code" => $e->getCode()
+            ], 500);
         }
-
-        return response()->json([
-            "success"=> false,
-            "message" => "Something went wrong. Please try again."
-        ], 500);
     }
 
-    public function destroy(Skill $skill)
+    public function destroy(int $id)
     {
-        $is_deleted = $skill->delete();
+        try {
+            $skill = Skill::withoutTrashed()->find($id);
 
-        if ($is_deleted) {
+            if (!$skill) {
+                return response()->json([
+                    "success" => false,
+                    "message" => "Skill not found."
+                ], 404);
+            }
+
+            $is_deleted = $skill->delete();
+
+            if ($is_deleted) {
+                return response()->json([
+                    "success" => true,
+                    "data" => compact("skill"),
+                    "message" => "Successfully deleted skill."
+                ], 200);
+            }
+
             return response()->json([
-                "success" => true,
-                "data" => compact("skill"),
-                "message" => "Successfully deleted skill."
-            ], 200);
-        }
+                "success"=> false,
+                "data" => null,
+                "message" => "Something went wrong. Please try again."
+            ], 400);
 
-        return response()->json([
-            "success"=> false,
-            "message" => "Something went wrong. Please try again."
-        ], 500);
+        } catch (\Throwable $e) {
+            return response()->json([
+                "success" => false,
+                "data" => null,
+                "message" => "Something went wrong. Please try again.",
+                "code" => $e->getCode()
+            ], 500);
+        }
     }
 
     public function restore(int $id)
     {
-        $skill = Skill::withTrashed()->find($id);
-        $is_restored = $skill->restore();
+        try {
+            $skill = Skill::withTrashed()->find($id);
 
-        if ($is_restored) {
+            if (!$skill) {
+                return response()->json([
+                    "success" => false,
+                    "data" => null,
+                    "message" => "Skill not found."
+                ], 404);
+            }
+
+            $is_restored = $skill->restore();
+
+            if ($is_restored) {
+                return response()->json([
+                    "success" => true,
+                    "data" => compact("skill"),
+                    "message" => "Successfully restored skill."
+                ], 200);
+            }
+
             return response()->json([
-                "success" => true,
-                "data" => compact("skill"),
-                "message" => "Successfully restored skill."
-            ], 200);
-        }
+                "success"=> false,
+                "data" => null,
+                "message" => "Something went wrong. Please try again."
+            ], 400);
 
-        return response()->json([
-            "success"=> false,
-            "message" => "Something went wrong. Please try again."
-        ], 500);
+        } catch (\Throwable $e) {
+            return response()->json([
+                "success" => false,
+                "data" => null,
+                "message" => "Something went wrong. Please try again.",
+                "code" => $e->getCode()
+            ], 500);
+        }
     }
 }
