@@ -26,6 +26,18 @@ class ScholarYear extends Model
         'is_upcoming',
     ];
 
+    protected static function booted()
+    {
+        static::deleted(function ($scholarYear) {
+            $scholarYear->grade_levels()->delete();
+        });
+
+        static::restored(function ($scholarYear) {
+            $scholarYear->grade_levels()->restore();
+        });
+
+    }
+
     public function grade_levels(){
         return $this->hasMany(GradeLevel::class);
     }
