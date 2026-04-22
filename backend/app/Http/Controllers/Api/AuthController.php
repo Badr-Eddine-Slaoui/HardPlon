@@ -11,32 +11,74 @@ class AuthController extends Controller
 {
     public function login(LoginRequest $request)
     {
-        $credentials = $request->only('email', 'password');
+        try {
+            $credentials = $request->only('email', 'password');
 
-        if (!$token = Auth::guard('api')->attempt($credentials)) {
+            if (!$token = Auth::guard('api')->attempt($credentials)) {
+                return response()->json([
+                    'message' => 'Invalid credentials'
+                ], 401);
+            }
+
             return response()->json([
-                'message' => 'Invalid credentials'
-            ], 401);
-        }
+                "success" => true,
+                "data" => [
+                    'access_token' => $token,
+                    'token_type' => 'bearer',
+                    'user' => Auth::guard('api')->user()
+                ],
+                "message" => "Logged in successfully."
+            ],200);
 
-        return response()->json([
-            'access_token' => $token,
-            'token_type' => 'bearer',
-            'user' => Auth::guard('api')->user()
-        ],200);
+        } catch (\Throwable $e) {
+            return response()->json([
+                "success" => false,
+                "data" => null,
+                "message" => "Failed to login: " . $e->getMessage(),
+                "code" => $e->getCode()
+            ], 500);
+        }
     }
 
     public function me()
     {
-        return response()->json(Auth::guard('api')->user());
+        try {
+            $user = Auth::guard('api')->user();
+
+            return response()->json([
+                "success" => true,
+                "data" => compact('user'),
+                "message" => "Successfully fetched user data."
+            ], 200);
+
+        } catch (\Throwable $e) {
+            return response()->json([
+                "success" => false,
+                "data" => null,
+                "message" => "Failed to fetch user data: " . $e->getMessage(),
+                "code" => $e->getCode()
+            ], 500);
+        }
     }
 
     public function logout()
     {
-        Auth::guard('api')->logout();
+        try {
+            Auth::guard('api')->logout();
 
-        return response()->json([
-            'message' => 'Logged out successfully'
-        ]);
+            return response()->json([
+                "success" => true,
+                "data" => null,
+                "message" => "Logged out successfully."
+            ], 200);
+
+        } catch (\Throwable $e) {
+            return response()->json([
+                "success" => false,
+                "data" => null,
+                "message" => "Failed to logout: " . $e->getMessage(),
+                "code" => $e->getCode()
+            ], 500);
+        }
     }
 }
