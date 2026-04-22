@@ -18,6 +18,18 @@ class Correction extends Model
         'result'
     ];
 
+    protected static function booted()
+    {
+        static::deleted(function ($correction) {
+            $correction->correction_details()->delete();
+        });
+
+        static::restored(function ($correction) {
+            $correction->correction_details()->restore();
+        });
+
+    }
+
     public function brief(){
         return $this->belongsTo(Brief::class);
     }
