@@ -31,7 +31,7 @@ class AdminController extends Controller
             return response()->json([
                 "success" => false,
                 "data" => null,
-                "message" => "Failed to fetch admin dashboard data: " . $e->getMessage(),
+                "message" => "Something went wrong. Please try again.",
                 "code" => $e->getCode()
             ], 500);
         }
