@@ -12,6 +12,18 @@ class Student extends User
         static::addGlobalScope('student', function (Builder $builder) {
             $builder->where('users.role', 'STUDENT');
         });
+
+        static::deleted(function ($student) {
+            $student->squad_members()->delete();
+            $student->submissions()->delete();
+            $student->corrections()->delete();
+        });
+
+        static::restored(function ($student) {
+            $student->squad_members()->restore();
+            $student->submissions()->restore();
+            $student->corrections()->restore();
+        });
     }
 
     public function class_group(){
