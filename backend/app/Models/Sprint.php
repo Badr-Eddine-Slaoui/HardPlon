@@ -20,6 +20,18 @@ class Sprint extends Model
 
     protected $appends = ["is_active"];
 
+    protected static function booted()
+    {
+        static::deleted(function ($sprint) {
+            $sprint->sprint_skills()->delete();
+        });
+
+        static::restored(function ($sprint) {
+            $sprint->sprint_skills()->restore();
+        });
+
+    }
+
     public function getIsActiveAttribute()
     {
         return !$this->trashed();
