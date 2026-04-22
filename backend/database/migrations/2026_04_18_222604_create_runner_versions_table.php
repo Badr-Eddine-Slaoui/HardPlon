@@ -20,6 +20,7 @@ return new class extends Migration
             $table->enum('status', ["active", "deprecated", "disabled"])->default('active');
             $table->boolean('is_default')->default(false);
             $table->timestamps();
+            $table->softDeletes();
         });
     }
 
