@@ -7,18 +7,33 @@ use App\Models\Brief;
 use App\Models\ClassGroup;
 use App\Models\Student;
 use App\Models\Teacher;
-use Illuminate\Http\Request;
+use Laravel\Octane\Facades\Octane;
 
 class AdminController extends Controller
 {
     public function index(){
-        $students_count = Student::count();
-        $teachers_count = Teacher::count();
-        $class_groups_count = ClassGroup::where('deleted_at', null)->count();
-        $briefs_count = Brief::where('deleted_at', null)->count();
+        try {
 
-        return response()->json([
-            "statistics" => compact("students_count","teachers_count", "class_groups_count", "briefs_count"),
-        ]);
+            [$students_count, $teachers_count, $class_groups_count, $briefs_count] = Octane::concurrently([
+                fn () => Student::where('deleted_at', null)->count() ?? 0,
+                fn () => Teacher::where('deleted_at', null)->count() ?? 0,
+                fn () => ClassGroup::where('deleted_at', null)->count() ?? 0,
+                fn () => Brief::where('deleted_at', null)->count() ?? 0,
+            ]);
+
+            return response()->json([
+                "success" => true,
+                "data" => compact('students_count', 'teachers_count', 'class_groups_count', 'briefs_count'),
+                "message" => "Successfully fetched admin dashboard data."
+            ], 200);
+
+        } catch (\Throwable $e) {
+            return response()->json([
+                "success" => false,
+                "data" => null,
+                "message" => "Failed to fetch admin dashboard data: " . $e->getMessage(),
+                "code" => $e->getCode()
+            ], 500);
+        }
     }
 }
