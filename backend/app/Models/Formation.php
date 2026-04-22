@@ -30,6 +30,18 @@ class Formation extends Model
         'is_nearly_empty'
     ];
 
+    protected static function booted()
+    {
+        static::deleted(function ($formation) {
+            $formation->class_groups()->delete();
+        });
+
+        static::restored(function ($formation) {
+            $formation->class_groups()->restore();
+        });
+
+    }
+
     public function is_full(): bool{
         return $this->students_count >= $this->capacity;
     }
