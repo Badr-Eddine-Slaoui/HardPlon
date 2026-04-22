@@ -34,7 +34,7 @@ class AuthController extends Controller
             return response()->json([
                 "success" => false,
                 "data" => null,
-                "message" => "Failed to login: " . $e->getMessage(),
+                "message" => "Something went wrong. Please try again.",
                 "code" => $e->getCode()
             ], 500);
         }
@@ -55,7 +55,7 @@ class AuthController extends Controller
             return response()->json([
                 "success" => false,
                 "data" => null,
-                "message" => "Failed to fetch user data: " . $e->getMessage(),
+                "message" => "Something went wrong. Please try again.",
                 "code" => $e->getCode()
             ], 500);
         }
@@ -76,7 +76,7 @@ class AuthController extends Controller
             return response()->json([
                 "success" => false,
                 "data" => null,
-                "message" => "Failed to logout: " . $e->getMessage(),
+                "message" => "Something went wrong. Please try again.",
                 "code" => $e->getCode()
             ], 500);
         }
