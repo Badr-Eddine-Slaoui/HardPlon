@@ -13,6 +13,14 @@ class SubmissionSeeder extends Seeder
      */
     public function run(): void
     {
-        Submission::factory(20)->create();
+        Submission::create([
+            "brief_id" => 1,
+            "student_id" => 3,
+            "squad_id" => null,
+            "message" => "My first submission",
+            "link" => "https://www.github.com/Badr-Eddine-Slaoui/EcoShopAPI.git",
+            "created_at" => now(),
+            "updated_at" => now()
+        ]);
     }
 }
