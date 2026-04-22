@@ -101,7 +101,7 @@ class RunnerVersionController extends Controller
             return response()->json([
                 'success' => false,
                 'data' => null,
-                'message' => 'An error occurred while fetching runners: ' . $e->getMessage(),
+                'message' => "Something went wrong. Please try again.",
                 'code' => $e->getCode(),
             ], 500);
         }
@@ -143,7 +143,7 @@ class RunnerVersionController extends Controller
             return response()->json([
                 'success' => false,
                 'data' => null,
-                'message' => 'An error occurred while creating the runner version: ' . $e->getMessage(),
+                'message' => "Something went wrong. Please try again.",
                 'code' => $e->getCode(),
             ], 500);
         }
@@ -175,7 +175,7 @@ class RunnerVersionController extends Controller
             return response()->json([
                 'success' => false,
                 'data' => null,
-                'message' => 'An error occurred while fetching the runner version: ' . $e->getMessage(),
+                'message' => "Something went wrong. Please try again.",
                 'code' => $e->getCode(),
             ], 500);
         }
@@ -217,7 +217,7 @@ class RunnerVersionController extends Controller
             return response()->json([
                 'success' => false,
                 'data' => null,
-                'message' => 'An error occurred while deleting the runner version: ' . $e->getMessage(),
+                'message' => "Something went wrong. Please try again.",
                 'code' => $e->getCode(),
             ], 500);
         }
