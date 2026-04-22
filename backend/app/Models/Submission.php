@@ -18,6 +18,22 @@ class Submission extends Model
         'link',
     ];
 
+    protected static function booted()
+    {
+        static::deleted(function ($submission) {
+            $submission->evaluationJob()->delete();
+            $submission->problemSubmissions()->delete();
+            $submission->problemSubmissionJob()->delete();
+        });
+
+        static::restored(function ($submission) {
+            $submission->evaluationJob()->restore();
+            $submission->problemSubmissions()->restore();
+            $submission->problemSubmissionJob()->restore();
+        });
+
+    }
+
     public function brief(){
         return $this->belongsTo(Brief::class);
     }
