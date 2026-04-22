@@ -8,178 +8,304 @@ use App\Models\Brief;
 use App\Models\BriefSkillLevel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Laravel\Octane\Facades\Octane;
 
 class BriefController extends Controller
 {
     public function index()
     {
-        $briefs = Brief::withTrashed()->with(['sprint'])->orderByDesc('created_at')->get();
-        $archived_briefs = Brief::onlyTrashed()->get();
+        try {
 
-        return response()->json([
-            "success" => true,
-            "data" => compact("briefs", "archived_briefs")
-        ], 200);
+            $per_page = request()->get("per_page", 5);
+
+            [$briefs, $archived_briefs] = Octane::concurrently([
+                fn() => Brief::withoutTrashed()->with(['sprint'])->orderByDesc('created_at')->paginate($per_page),
+                fn() => Brief::onlyTrashed()->with(['sprint'])->orderByDesc('created_at')->paginate($per_page)
+            ]);
+
+            return response()->json([
+                "success" => true,
+                "data" => compact("briefs", "archived_briefs"),
+                "message" => "Successfully fetched briefs."
+            ], 200);
+
+        } catch (\Throwable $e) {
+            return response()->json([
+                "success" => false,
+                "data" => null,
+                "message" => "Something went wrong. Please try again.",
+                "code" => $e->getCode()
+            ], 500);
+        }
     }
     public function get_teacher_briefs()
     {
-        $briefs = Brief::withTrashed()
-            ->with(['sprint'])
-            ->where('teacher_id', Auth::user()->id)
-            ->orderByDesc('created_at')->get();
-        $archived_briefs = Brief::onlyTrashed()
-            ->with(['sprint'])
-            ->where('teacher_id', Auth::user()->id)
-            ->orderByDesc('created_at')
-            ->get();
+        try{
+            [$briefs, $archived_briefs] = Octane::concurrently([
+                fn() => Brief::withoutTrashed()->with(['sprint'])->where('teacher_id', Auth::guard('api')->user()->id)->orderByDesc('created_at')->get(),
+                fn() => Brief::onlyTrashed()->with(['sprint'])->where('teacher_id', Auth::guard('api')->user()->id)->orderByDesc('created_at')->get()
+            ]);
 
-        return response()->json([
-            "success" => true,
-            "data" => compact("briefs", "archived_briefs")
-        ], 200);
+            return response()->json([
+                "success" => true,
+                "data" => compact("briefs", "archived_briefs"),
+                "message" => "Successfully fetched briefs."
+            ], 200);
+        } catch (\Throwable $e) {
+            return response()->json([
+                "success" => false,
+                "data" => null,
+                "message" => "Something went wrong. Please try again.",
+                "code" => $e->getCode()
+            ], 500);
+        }
     }
 
     public function get_student_briefs(){
-        $briefs = Brief::withoutTrashed()
-            ->with(["sprint", "class_group", "teacher", "brief_skill_levels.skill", "brief_skill_levels.level", "stack"])
-            ->where("class_group_id", Auth::user()->id_class)
-            ->orderByDesc("created_at")
-            ->get();
-        return response()->json([
-            "success" => true,
-            "data" => compact("briefs")
-        ], 200);
+        try {
+            $briefs = Brief::withoutTrashed()
+                ->with(["sprint", "class_group", "teacher", "brief_skill_levels.skill", "brief_skill_levels.level", "stack"])
+                ->where("class_group_id", Auth::user()->id_class)
+                ->orderByDesc("created_at")
+                ->get();
+            return response()->json([
+                "success" => true,
+                "data" => compact("briefs"),
+                "message" => "Successfully fetched briefs."
+            ], 200);
+        } catch (\Throwable $e) {
+            return response()->json([
+                "success" => false,
+                "data" => null,
+                "message" => "Something went wrong. Please try again.",
+                "code" => $e->getCode()
+            ], 500);
+        }
     }
 
-    public function show(Request $request, Brief $brief)
+    public function show(Request $request, int $id)
     {
-        $brief->loadMissing(["sprint", "class_group.formation", "teacher", "brief_skill_levels.skill", "brief_skill_levels.level", "stack"]);
-        return response()->json([
-            "success"=> true,
-            "data" => compact("brief")
-        ], 200);
+        try {
+
+            $brief = Brief::find($id);
+
+            if (!$brief) {
+                return response()->json([
+                    "success" => false,
+                    "data" => null,
+                    "message" => "Brief not found."
+                ], 404);
+            }
+
+            $brief->loadMissing(["sprint", "class_group.formation", "teacher", "brief_skill_levels.skill", "brief_skill_levels.level", "stack"]);
+
+            return response()->json([
+                "success"=> true,
+                "data" => compact("brief"),
+                "message" => "Successfully fetched brief."
+            ], 200);
+
+        } catch (\Throwable $e) {
+            return response()->json([
+                "success" => false,
+                "data" => null,
+                "message" => "Something went wrong. Please try again.",
+                "code" => $e->getCode()
+            ], 500);
+        }
     }
 
     public function store(BriefRequest $request)
     {
-        $brief = Brief::create([
-            "sprint_id" => $request->sprint_id,
-            "class_group_id" => $request->class_group_id,
-            "stack_id" => $request->stack_id,
-            "teacher_id" => Auth::id(),
-            "title" => $request->title,
-            "description" => $request->description,
-            "content" => $request->input("content"),
-            "is_collective" => $request->is_collective ?? false,
-            "start_date" => $request->start_date,
-            "end_date" => $request->end_date
-        ]);
+        try {
+            $brief = Brief::create([
+                "sprint_id" => $request->sprint_id,
+                "class_group_id" => $request->class_group_id,
+                "stack_id" => $request->stack_id,
+                "teacher_id" => Auth::guard('api')->id(),
+                "title" => $request->title,
+                "description" => $request->description,
+                "content" => $request->input("content"),
+                "is_collective" => $request->is_collective ?? false,
+                "start_date" => $request->start_date,
+                "end_date" => $request->end_date
+            ]);
 
-        if ($brief) {
+            if ($brief) {
 
-            foreach ($request->skill_levels as $skill_level) {
-                BriefSkillLevel::create([
-                    'brief_id' => $brief->id,
-                    'skill_id' => $skill_level['skill_id'],
-                    'level_id' => $skill_level['level_id']
-                ]);
+                foreach ($request->skill_levels as $skill_level) {
+                    BriefSkillLevel::create([
+                        'brief_id' => $brief->id,
+                        'skill_id' => $skill_level['skill_id'],
+                        'level_id' => $skill_level['level_id']
+                    ]);
+                }
+
+                return response()->json([
+                    "success" => true,
+                    "data" => compact("brief"),
+                    "message" => "Successfully created brief."
+                ], 200);
             }
 
             return response()->json([
-                "success" => true,
-                "data" => compact("brief"),
-                "message" => "Successfully created brief."
-            ], 200);
-        }
+                "success" => false,
+                "data" => $request->all(),
+                "message" => "Something went wrong. Please try again."
+            ], 400);
 
-        return response()->json([
-            "success" => false,
-            "data" => $request->all(),
-            "message" => "Something went wrong. Please try again."
-        ], 500);
+        } catch (\Throwable $e) {
+            return response()->json([
+                "success" => false,
+                "data" => null,
+                "message" => "Something went wrong. Please try again.",
+                "code" => $e->getCode()
+            ], 500);
+        }
     }
 
-    public function update(BriefRequest $request, Brief $brief)
+    public function update(BriefRequest $request, int $id)
     {
-        $is_updated = $brief->update([
-            "sprint_id" => $request->sprint_id,
-            "class_group_id" => $request->class_group_id,
-            "stack_id" => $request->stack_id,
-            "teacher_id" => Auth::id(),
-            "title" => $request->title,
-            "description" => $request->description,
-            "content" => $request->input("content"),
-            "is_collective" => $request->is_collective ?? false,
-            "start_date" => $request->start_date,
-            "end_date" => $request->end_date
-        ]);
+        try {
+            $brief = Brief::find($id);
 
-        if ($is_updated) {
+            if (!$brief) {
+                return response()->json([
+                    "success" => false,
+                    "data" => null,
+                    "message" => "Brief not found."
+                ], 404);
+            }
+            $is_updated = $brief->update([
+                "sprint_id" => $request->sprint_id,
+                "class_group_id" => $request->class_group_id,
+                "stack_id" => $request->stack_id,
+                "teacher_id" => Auth::guard('api')->id(),
+                "title" => $request->title,
+                "description" => $request->description,
+                "content" => $request->input("content"),
+                "is_collective" => $request->is_collective ?? false,
+                "start_date" => $request->start_date,
+                "end_date" => $request->end_date
+            ]);
 
-            $brief->brief_skill_levels()
-                ->whereNotIn("skill_id", array_map(fn($item) => $item["skill_id"], $request->skill_levels))
-                ->orWhereNotIn("level_id", array_map(fn($item) => $item["level_id"], $request->skill_levels))
-                ->delete();
+            if ($is_updated) {
 
-            foreach ($request->skill_levels as $skill_level) {
-                BriefSkillLevel::updateOrCreate([
-                    "brief_id" => $brief->id,
-                    'skill_id' => $skill_level['skill_id'],
-                    'level_id' => $skill_level['level_id']
-                ], [
-                    "brief_id" => $brief->id,
-                    'skill_id' => $skill_level['skill_id'],
-                    'level_id' => $skill_level['level_id']
-                ]);
+                $brief->brief_skill_levels()
+                    ->whereNotIn("skill_id", array_map(fn($item) => $item["skill_id"], $request->skill_levels))
+                    ->orWhereNotIn("level_id", array_map(fn($item) => $item["level_id"], $request->skill_levels))
+                    ->delete();
+
+                foreach ($request->skill_levels as $skill_level) {
+                    BriefSkillLevel::updateOrCreate([
+                        "brief_id" => $brief->id,
+                        'skill_id' => $skill_level['skill_id'],
+                        'level_id' => $skill_level['level_id']
+                    ], [
+                        "brief_id" => $brief->id,
+                        'skill_id' => $skill_level['skill_id'],
+                        'level_id' => $skill_level['level_id']
+                    ]);
+                }
+
+                return response()->json([
+                    "success" => true,
+                    "data" => compact("brief"),
+                    "message" => "Successfully updated brief."
+                ], 200);
             }
 
             return response()->json([
-                "success" => true,
-                "data" => compact("brief"),
-                "message" => "Successfully updated brief."
-            ], 200);
-        }
+                "success"=> false,
+                "data" => null,
+                "message" => "Something went wrong. Please try again."
+            ], 400);
 
-        return response()->json([
-            "success"=> false,
-            "message" => "Something went wrong. Please try again."
-        ], 500);
+        } catch (\Throwable $e) {
+            return response()->json([
+                "success" => false,
+                "data" => null,
+                "message" => "Something went wrong. Please try again.",
+                "code" => $e->getCode()
+            ], 500);
+        }
     }
 
-    public function destroy(Brief $brief)
+    public function destroy(int $id)
     {
-        $is_deleted = $brief->delete();
+        try {
+            $brief = Brief::withoutTrashed()->find($id);
 
-        if ($is_deleted) {
+            if (!$brief) {
+                return response()->json([
+                    "success" => false,
+                    "data" => null,
+                    "message" => "Brief not found."
+                ], 404);
+            }
+
+            $is_deleted = $brief->delete();
+
+            if ($is_deleted) {
+                return response()->json([
+                    "success" => true,
+                    "data" => compact("brief"),
+                    "message" => "Successfully deleted brief."
+                ], 200);
+            }
+
             return response()->json([
-                "success" => true,
-                "data" => compact("brief"),
-                "message" => "Successfully deleted brief."
-            ], 200);
-        }
+                "success"=> false,
+                "data" => null,
+                "message" => "Something went wrong. Please try again."
+            ], 400);
 
-        return response()->json([
-            "success"=> false,
-            "message" => "Something went wrong. Please try again."
-        ], 500);
+        } catch (\Throwable $e) {
+            return response()->json([
+                "success" => false,
+                "data" => null,
+                "message" => "Something went wrong. Please try again.",
+                "code" => $e->getCode()
+            ], 500);
+        }
     }
 
     public function restore(int $id)
     {
-        $brief = Brief::withTrashed()->find($id);
-        $is_restored = $brief->restore();
+        try {
+            $brief = Brief::onlyTrashed()->find($id);
 
-        if ($is_restored) {
+            if (!$brief) {
+                return response()->json([
+                    "success" => false,
+                    "data" => null,
+                    "message" => "Brief not found."
+                ], 404);
+            }
+
+            $is_restored = $brief->restore();
+
+            if ($is_restored) {
+                return response()->json([
+                    "success" => true,
+                    "data" => compact("brief"),
+                    "message" => "Successfully restored brief."
+                ], 200);
+            }
+
             return response()->json([
-                "success" => true,
-                "data" => compact("brief"),
-                "message" => "Successfully restored brief."
-            ], 200);
-        }
+                "success"=> false,
+                "data" => null,
+                "message" => "Something went wrong. Please try again."
+            ], 400);
 
-        return response()->json([
-            "success"=> false,
-            "message" => "Something went wrong. Please try again."
-        ], 500);
+        } catch (\Throwable $e) {
+            return response()->json([
+                "success" => false,
+                "data" => null,
+                "message" => "Something went wrong. Please try again.",
+                "code" => $e->getCode()
+            ], 500);
+        }
     }
 }
