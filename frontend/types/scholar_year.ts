@@ -15,9 +15,3 @@ export interface Year {
     is_upcoming: boolean
     grade_levels: Grade[]
 }
-
-export interface YearData {
-    scholar_years: Year[]
-    archived_years: Year[]
-    current_year: Year
-}
