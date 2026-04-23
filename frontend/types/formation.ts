@@ -21,8 +21,3 @@ export interface Formation {
     class_groups: any
     grade_level?: Grade
 }
-
-export interface FormationData {
-    formations: Formation[]
-    archived_formations: Formation[]
-}
