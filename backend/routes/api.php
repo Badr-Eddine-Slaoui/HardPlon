@@ -40,40 +40,40 @@ Route::middleware('auth:api')->group(function () {
         /* Scholar Year Routes */
         Route::controller(ScholarYearController::class)->group(function () {
             Route::get('/scholar-years', 'index');
-            Route::get('/scholar-years/{scholar_year}', 'show');
+            Route::get('/scholar-years/{id}', 'show');
             Route::post('/scholar-years', 'store');
-            Route::put('/scholar-years/{scholar_year}', 'update');
-            Route::delete('/scholar-years/{scholar_year}', 'destroy');
+            Route::put('/scholar-years/{id}', 'update');
+            Route::delete('/scholar-years/{id}', 'destroy');
             Route::post('/scholar-years/{id}/restore','restore');
         });
 
         /* Grade Level Routes */
         Route::controller(GradeLevelController::class)->group(function () {
             Route::get('/grade-levels', 'index');
-            Route::get('/grade-levels/{grade_level}', 'show');
+            Route::get('/grade-levels/{id}', 'show');
             Route::post('/grade-levels', 'store');
-            Route::put('/grade-levels/{grade_level}', 'update');
-            Route::delete('/grade-levels/{grade_level}', 'destroy');
+            Route::put('/grade-levels/{id}', 'update');
+            Route::delete('/grade-levels/{id}', 'destroy');
             Route::post('/grade-levels/{id}/restore','restore');
         });
 
         /* Formation Routes */
         Route::controller(FormationController::class)->group(function () {
             Route::get('/formations', 'index');
-            Route::get('/formations/{formation}', 'show');
+            Route::get('/formations/{id}', 'show');
             Route::post('/formations', 'store');
-            Route::put('/formations/{formation}', 'update');
-            Route::delete('/formations/{formation}', 'destroy');
+            Route::put('/formations/{id}', 'update');
+            Route::delete('/formations/{id}', 'destroy');
             Route::post('/formations/{id}/restore','restore');
         });
 
         /* Class Group Routes */
         Route::controller(ClassGroupController::class)->group(function () {
             Route::get('/class-groups', 'index');
-            Route::get('/class-groups/{class_group}', 'show');
+            Route::get('/class-groups/{id}', 'show');
             Route::post('/class-groups', 'store');
-            Route::put('/class-groups/{class_group}', 'update');
-            Route::delete('/class-groups/{class_group}', 'destroy');
+            Route::put('/class-groups/{id}', 'update');
+            Route::delete('/class-groups/{id}', 'destroy');
             Route::post('/class-groups/{id}/restore','restore');
         });
 
@@ -85,18 +85,18 @@ Route::middleware('auth:api')->group(function () {
             Route::get('/users/students/{class_group?}', 'get_students');
             Route::get('/users/{role}/{id}', 'show');
             Route::post('/users', 'store');
-            Route::put('/users/{user}', 'update');
-            Route::delete('/users/{user}', 'destroy');
+            Route::put('/users/{id}', 'update');
+            Route::delete('/users/{id}', 'destroy');
             Route::post('/users/{id}/restore','restore');
         });
 
         /* Level Routes */
         Route::controller(LevelController::class)->group(function () {
             Route::get('/levels', 'index');
-            Route::get('/levels/{level}', 'show');
+            Route::get('/levels/{id}', 'show');
             Route::post('/levels', 'store');
-            Route::put('/levels/{level}', 'update');
-            Route::delete('/levels/{level}', 'destroy');
+            Route::put('/levels/{id}', 'update');
+            Route::delete('/levels/{id}', 'destroy');
             Route::post('/levels/{id}/restore','restore');
         });
 
@@ -104,26 +104,26 @@ Route::middleware('auth:api')->group(function () {
         Route::controller(SkillController::class)->group(function () {
             Route::get('/skills', 'index');
             Route::get('/skills/formation/{id}', 'get_by_formaction_id');
-            Route::get('/skills/{skill}', 'show');
+            Route::get('/skills/{id}', 'show');
             Route::post('/skills', 'store');
-            Route::put('/skills/{skill}', 'update');
-            Route::delete('/skills/{skill}', 'destroy');
+            Route::put('/skills/{id}', 'update');
+            Route::delete('/skills/{id}', 'destroy');
             Route::post('/skills/{id}/restore','restore');
         });
 
         /* Sprint Routes */
         Route::controller(SprintController::class)->group(function () {
             Route::get('/sprints', 'index');
-            Route::get('/sprints/{sprint}', 'show');
+            Route::get('/sprints/{id}', 'show');
             Route::post('/sprints', 'store');
-            Route::put('/sprints/{sprint}', 'update');
-            Route::delete('/sprints/{sprint}', 'destroy');
+            Route::put('/sprints/{id}', 'update');
+            Route::delete('/sprints/{id}', 'destroy');
             Route::post('/sprints/{id}/restore','restore');
         });
 
         /* Runners Routes */
         Route::controller(RunnerController::class)->group(function () {
-            Route::get('c', 'index');
+            Route::get('/runners', 'index');
             Route::get('/runners/{id}', 'show');
             Route::post('/runners', 'store');
             Route::put('/runners/{id}', 'update');
@@ -159,10 +159,10 @@ Route::middleware('auth:api')->group(function () {
         /* Brief Routes */
         Route::controller(BriefController::class)->group(function () {
             Route::get('/get_teacher_briefs', 'index');
-            Route::get('/briefs/{brief}', 'show');
+            Route::get('/briefs/{id}', 'show');
             Route::post('/briefs', 'store');
-            Route::put('/briefs/{brief}', 'update');
-            Route::delete('/briefs/{brief}', 'destroy');
+            Route::put('/briefs/{id}', 'update');
+            Route::delete('/briefs/{id}', 'destroy');
             Route::post('/briefs/{id}/restore','restore');
         });
     });
@@ -173,10 +173,10 @@ Route::middleware('auth:api')->group(function () {
         /* Brief Routes */
         Route::controller(BriefController::class)->group(function () {
             Route::get('/get_teacher_briefs', 'index');
-            Route::get('/briefs/{brief}', 'show');
+            Route::get('/briefs/{id}', 'show');
             Route::post('/briefs', 'store');
-            Route::put('/briefs/{brief}', 'update');
-            Route::delete('/briefs/{brief}', 'destroy');
+            Route::put('/briefs/{id}', 'update');
+            Route::delete('/briefs/{id}', 'destroy');
             Route::post('/briefs/{id}/restore','restore');
         });
 
@@ -231,8 +231,6 @@ Route::middleware('auth:api')->group(function () {
         Route::controller(CorrectionController::class)->group(function () {
             Route::get('/corrections/students/{id}','get_student_corrections');
             Route::get('/corrections/{brief_id}/{student_id}', 'get_student_correction');
-            Route::post('/corrections', 'store');
-            Route::put('/corrections/{correction}', 'update');
         });
     });
 
@@ -247,7 +245,7 @@ Route::middleware('auth:api')->group(function () {
         /* Submission Routes */
         Route::controller(SubmissionController::class)->group(function () {
             Route::get('/submissions', 'get_student_submissions');
-            Route::get('/submissions/{submission}', 'show');
+            Route::get('/submissions/{id}', 'show');
             Route::post('/submissions', 'store');
         });
 
