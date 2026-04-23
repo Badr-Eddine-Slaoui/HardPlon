@@ -24,8 +24,3 @@ export interface Sprint {
     formation?: Formation;
     sprint_skills?: SprintSkill[];
 }
-
-export interface SprintData {
-    sprints: Sprint[]
-    archived_sprints: Sprint[]
-}
