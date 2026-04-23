@@ -7,9 +7,10 @@
     })
 
     const grades = useGradeLevel();
+    const paginate = usePagination(grades.fetchGradeLevels.bind(grades));
 
     onMounted(async() => {
-        await callOnce('fetchGradeLevels', () => grades.fetchGradeLevels());
+        await paginate.fetchData();
     })
 
     function openArchiveModal(id: number): void {
@@ -230,6 +231,10 @@
                         </tbody>
                     </table>
                 </section>
+                
+                <!-- Pagination Controls -->
+                <Pagination :meta="grades.meta" :per_page="paginate.perPage.value" @change="paginate.fetchData"
+                    @perPage="paginate.changePerPage" />
                 <section class="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div
                         class="p-6 rounded-2xl bg-white/5 border border-slate-200 dark:border-[#224249] flex items-center gap-4">
