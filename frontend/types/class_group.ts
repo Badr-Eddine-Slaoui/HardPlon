@@ -18,8 +18,3 @@ export interface ClassGroup {
     main_teacher: ClassTeacher
     sub_teacher: ClassTeacher
 }
-
-export interface ClassGroupData {
-    class_groups: ClassGroup[]
-    archived_class_groups: ClassGroup[]
-}
