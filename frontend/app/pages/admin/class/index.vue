@@ -6,9 +6,10 @@
     })
 
     const classes = useClassGroup();
+    const paginate = usePagination(useClassGroup().fetchClassGroups.bind(classes))
 
     onMounted(async() => {
-        await classes.fetchClassGroups();
+        await paginate.fetchData();
     })
 
     const getPercentage = (students: number, capacity: number): number => {
@@ -200,6 +201,9 @@
                             </tbody>
                         </table>
                     </div>
+                    <!-- Pagination Controls -->
+                    <Pagination :meta="classes.meta" :per_page="paginate.perPage.value" @change="paginate.fetchData"
+                        @perPage="paginate.changePerPage" />
                 </div>
             </section>
         </main>
