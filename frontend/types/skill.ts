@@ -24,8 +24,3 @@ export interface Skill {
     formation?: Formation;
     skill_levels?: SkillLevel[];
 }
-
-export interface SkillData {
-    skills: Skill[]
-    archived_skills: Skill[]
-}
