@@ -2,6 +2,8 @@ import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { api } from '~/utils/api';
 import { useAuthStore } from './auth';
+import type { ReturnData } from '~~/types/api';
+import { useToastStore } from './toast';
 
 interface Statistics {
     students_count: number;
@@ -14,10 +16,18 @@ export const useAdminStore = defineStore(
     'admin',
     () => {
         const statisticts = ref<Statistics | null>(null)
+        const toast = useToastStore()
 
         async function fetchStatistics() {
-            const res = await api<{statistics: Statistics}>('/admin')
-            statisticts.value = res.statistics
+            try {
+                const res = await api<ReturnData<Statistics>>('/admin')
+                statisticts.value = res.data
+            } catch (err) {
+                toast.push({
+                    message: 'Something went wrong. Please try again.',
+                    type: 'error',
+                })
+            }
         }
 
 
