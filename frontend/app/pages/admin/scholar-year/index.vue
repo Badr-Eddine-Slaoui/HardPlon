@@ -7,8 +7,10 @@
 
     const years = useScholarYear();
 
-    onMounted(async() => {
-        await years.fetchScholarYears();
+    const paginate = usePagination(years.fetchScholarYears.bind(years))
+
+    onMounted(async () => {
+        await paginate.fetchData();
     })
 
     const getPercentage = (students: number, capacity: number): number => {
@@ -236,6 +238,10 @@
                             </tbody>
                         </table>
                     </div>
+
+                    <!-- Pagination Controls -->
+                    <Pagination :meta="years.meta" :per_page="paginate.perPage.value" @change="paginate.fetchData"
+                        @perPage="paginate.changePerPage" />
                 </section>
                 <section class="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div class="p-6 rounded-xl bg-[#1a2e33] border border-[#224249] flex items-center gap-4">
