@@ -6,9 +6,10 @@
     })
 
     const store = useSprint();
+    const paginate = usePagination(store.fetchSprints.bind(store));
 
     onMounted(async() => {
-        await store.fetchSprints();
+        await paginate.fetchData();
     })
 
     function openArchiveModal(id: number): void {
@@ -178,6 +179,10 @@
                             </tbody>
                         </table>
                     </div>
+
+                    <!-- Pagination Controls -->
+                    <Pagination :meta="store.meta" :per_page="paginate.perPage.value" @change="paginate.fetchData"
+                        @perPage="paginate.changePerPage" />
                 </div>
             </section>
         </main>
