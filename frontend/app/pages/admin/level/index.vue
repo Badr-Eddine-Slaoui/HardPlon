@@ -7,8 +7,10 @@
 
     const store = useLevel();
 
+    const paginate = usePagination(store.fetchLevels.bind(store));
+
     onMounted(async() => {
-        await store.fetchLevels();
+        await paginate.fetchData();
     })
 
     function openArchiveModal(id: number): void {
@@ -149,6 +151,10 @@
                             </tbody>
                         </table>
                     </div>
+
+                    <!-- Pagination Controls -->
+                    <Pagination :meta="store.meta" :per_page="paginate.perPage.value" @change="paginate.fetchData"
+                        @perPage="paginate.changePerPage" />
                 </div>
             </section>
         </main>
