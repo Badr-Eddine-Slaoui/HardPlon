@@ -19,8 +19,3 @@ export interface Grade {
     is_nearly_empty: boolean
     formations: Formation[]
 }
-
-export interface GradeData {
-    grade_levels: Grade[]
-    archived_grade_levels: Grade[]
-}
