@@ -31,20 +31,3 @@ export interface User {
     class_group?: ClassGroup
 }
 
-export interface UserData<T = User[]> {
-    users: T
-    archived_users: T
-}
-
-export interface PaginatedUsersData{
-    data: User[],
-    current_page: number,
-    last_page: number,
-    next_page_url: string | null,
-    prev_page_url: string | null,
-    total: number,
-    per_page: number,
-    from: number,
-    to: number
-}
-
