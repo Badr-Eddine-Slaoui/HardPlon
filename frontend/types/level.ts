@@ -8,8 +8,3 @@ export interface Level {
     deleted_at: string | null;
     is_active: boolean;
 }
-
-export interface LevelData {
-    levels: Level[]
-    archived_levels: Level[]
-}
