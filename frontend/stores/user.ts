@@ -1,8 +1,10 @@
 import { defineStore } from 'pinia';
-import { ref } from 'vue';
+import { reactive, ref } from 'vue';
 import { api } from '~/utils/api';
-import type { ReturnData } from '../types/api';
-import type { PaginatedUsersData, User, UserData } from '../types/user';
+import type { meta, ReturnData } from '../types/api';
+import type { User, UserData } from '../types/user';
+import { PaginatedData } from '../types/pagination';
+import { useToastStore } from './toast';
 
 export const useUser = defineStore(
     'user',
@@ -10,16 +12,7 @@ export const useUser = defineStore(
         const users = ref<User[] | null>(null)
         const user = ref<User | null>(null)
         const archived_users = ref<User[] | null>(null)
-        const meta: {
-            current_page: number;
-            last_page: number;
-            next_page_url: string | null;
-            prev_page_url: string | null;
-            total: number;
-            per_page: number;
-            from: number;
-            to: number;
-        } = reactive({
+        const meta: meta = reactive({
             current_page: 0,
             last_page: 0,
             next_page_url: null,
@@ -29,45 +22,96 @@ export const useUser = defineStore(
             from: 0,
             to: 0
         })
+        const toast = useToastStore()
 
         async function fetchUsers(page: number = 1, per_page: number = 5): Promise<void> {
-            const res = await api<ReturnData<UserData<PaginatedUsersData>>>(`/admin/users?page=${page}&per_page=${per_page}`)
-            users.value = res.data?.users?.data as User[]
-            archived_users.value = res.data?.archived_users?.data as User[]
-            
-            Object.assign(meta, res.data?.users)
+            try {
+                const res = await api<ReturnData<{ users: PaginatedData<User[]>, archived_users: PaginatedData<User[]>}>>(`/admin/users?page=${page}&per_page=${per_page}`)
+                users.value = res.data?.users?.data as User[]
+                archived_users.value = res.data?.archived_users?.data as User[]
+                
+                Object.assign(meta, res.data?.users)
+            } catch (err) {
+                toast.push({
+                    message: 'Something went wrong. Please try again.',
+                    type: 'error',
+                })
+            }
         }
 
         async function fetchUser(role: string, id: number): Promise<void> {
-            const res = await api<ReturnData<{ user: User }>>(`/admin/users/${role}/${id}`)
-            user.value = res.data?.user as User
+            try {
+                const res = await api<ReturnData<{ user: User }>>(`/admin/users/${role}/${id}`)
+                user.value = res.data?.user as User
+            } catch (err) {
+                toast.push({
+                    message: 'Something went wrong. Please try again.',
+                    type: 'error',
+                })
+            }
         }
 
         async function fetchTeachersByRole(role: string, class_group?: number): Promise<User[] | null> {
-            const res = await api<ReturnData<UserData>>(`/admin/users/${role}_teachers/${class_group ?? ''}`)
-            return res.data?.users ?? null
+            try {
+                const res = await api<ReturnData<UserData>>(`/admin/users/${role}_teachers/${class_group ?? ''}`)
+                return res.data?.users ?? null
+            } catch (err) {
+                toast.push({
+                    message: 'Something went wrong. Please try again.',
+                    type: 'error',
+                })
+                return null
+            }
         }
 
         async function fetchStudents(class_group?: number): Promise<User[] | null> {
-            const res = await api<ReturnData<UserData>>(`/admin/users/students/${class_group ?? ''}`)
-            return res.data?.users ?? null
+            try {
+                const res = await api<ReturnData<UserData>>(`/admin/users/students/${class_group ?? ''}`)
+                return res.data?.users ?? null
+            } catch (err) {
+                toast.push({
+                    message: 'Something went wrong. Please try again.',
+                    type: 'error',
+                })
+                return null
+            }
         }
 
         async function fetchTeacherStudents(class_group: number): Promise<User[] | null> {
-            const res = await api<ReturnData<UserData>>(`/teacher/class-groups/${class_group}/students`)
-            return res.data?.users ?? null
+            try {
+                const res = await api<ReturnData<UserData>>(`/teacher/class-groups/${class_group}/students`)
+                return res.data?.users ?? null
+            } catch (err) {
+                toast.push({
+                    message: 'Something went wrong. Please try again.',
+                    type: 'error',
+                })
+                return null
+            }
         }
 
-        async function createUser(data: { first_name: string, last_name: string, age: number, email: string, cin: string, phone: string, role: string, password: string }): Promise<ReturnData<any>> {
+        async function createUser(data: { first_name: string, last_name: string, age: number, email: string, cin: string, phone: string, role: string, password: string }): Promise<ReturnData> {
             try {
                 const res = await api<ReturnData<{ user: User, message: string }>>('/admin/users', {
                     method: 'POST',
                     body: data
                 })
-                users.value?.push(res.data?.user as User)
+
+                if (!users.value?.length) {
+                    await fetchUsers()
+                }
+
+                users.value?.unshift(res.data?.user as User)
+
+                toast.push({
+                    message: res?.message || 'User created successfully.',
+                    type: 'success',
+                })
+
                 return {
                     success: true,
-                    data: res.data?.message
+                    message: res?.message || 'User created successfully.',
+                    data: null
                 }
             } catch (err: any) {
                 if (err?.data?.errors) {
@@ -81,8 +125,16 @@ export const useUser = defineStore(
                         phone = phone ? phone[0] : "";
                         role = role ? role[0] : "";
                         password = password ? password[0] : "";
+
+                        toast.push({
+                            message: "Validation error. Please check your input.",
+                            type: 'error',
+                        })
+
                         return {
                             success: false,
+                            message: "Validation error. Please check your input.",
+                            data: null,
                             errors: {
                                 first_name,
                                 last_name,
@@ -96,8 +148,16 @@ export const useUser = defineStore(
                         }
                     }
                 }
+
+                toast.push({
+                    message: err.message || 'Something went wrong. Please try again.',
+                    type: 'error',
+                })
+
                 return {
                     success: false,
+                    message: err.message || 'Something went wrong. Please try again.',
+                    data: null,
                     errors: {
                         first_name: '',
                         last_name: '',
@@ -107,13 +167,13 @@ export const useUser = defineStore(
                         phone: '',
                         role: '',
                         password: '',
-                        message: err.data.message
+                        message: err.message || 'Something went wrong. Please try again.'
                     },
                 }
             }
         }
 
-        async function updateUser(id: number, data: { first_name: string, last_name: string, age: number, email: string, cin: string, phone: string, role: string }): Promise<ReturnData<any>> {
+        async function updateUser(id: number, data: { first_name: string, last_name: string, age: number, email: string, cin: string, phone: string, role: string }): Promise<ReturnData> {
             try {
                 const res = await api<ReturnData<{ user: User, message: string }>>(`/admin/users/${id}`, {
                     method: 'PUT',
@@ -128,9 +188,16 @@ export const useUser = defineStore(
                 const user = users.value?.find(y => y.id === id) as User
 
                 Object.assign(user, restoredUser)
+
+                toast.push({
+                    message: res?.message || 'User updated successfully.',
+                    type: 'success',
+                })
+                
                 return {
                     success: true,
-                    data: res.data?.message
+                    message: res?.message || 'User updated successfully.',
+                    data: null
                 }
             } catch (err: any) {
                 if (err?.data?.errors) {
@@ -143,8 +210,16 @@ export const useUser = defineStore(
                         cin = cin ? cin[0] : "";
                         phone = phone ? phone[0] : "";
                         role = role ? role[0] : "";
+
+                        toast.push({
+                            message: "Validation error. Please check your input.",
+                            type: 'error',
+                        })
+
                         return {
                             success: false,
+                            message: "Validation error. Please check your input.",
+                            data: null,
                             errors: {
                                 first_name,
                                 last_name,
@@ -157,8 +232,16 @@ export const useUser = defineStore(
                         }
                     }
                 }
+
+                toast.push({
+                    message: err.message || 'Something went wrong. Please try again.',
+                    type: 'error',
+                })
+
                 return {
                     success: false,
+                    message: err.message || 'Something went wrong. Please try again.',
+                    data: null,
                     errors: {
                         first_name: '',
                         last_name: '',
@@ -167,40 +250,64 @@ export const useUser = defineStore(
                         cin: '',
                         phone: '',
                         role: '',
-                        message: err.message
+                        message: err.message || 'Something went wrong. Please try again.'
                     },
                 }
             }
         }
 
         async function archiveUser(id: number): Promise<void> {
-            const res = await api<ReturnData<{ user: User }>>(`/admin/users/${id}`, {
-                method: 'DELETE'
-            })
+            try {
+                const res = await api<ReturnData<{ user: User }>>(`/admin/users/${id}`, {
+                    method: 'DELETE'
+                })
 
-            if (!users.value?.length) {
-                await fetchUsers()
+                if (!users.value?.length) {
+                    await fetchUsers()
+                }
+
+                const restoredUser = res.data?.user as User
+                const user = users.value?.find(y => y.id === id) as User
+
+                Object.assign(user, restoredUser)
+
+                toast.push({
+                    message: res?.message || 'User archived successfully.',
+                    type: 'success',
+                })
+            } catch (err) {
+                toast.push({
+                    message: 'Something went wrong. Please try again.',
+                    type: 'error',
+                })
             }
-
-            const restoredUser = res.data?.user as User
-            const user = users.value?.find(y => y.id === id) as User
-
-            Object.assign(user, restoredUser)
         }
 
         async function restoreUser(id: number): Promise<void> {
-            const res = await api<ReturnData<{ user: User }>>(`/admin/users/${id}/restore`, {
-                method: 'POST'
-            })
+            try {
+                const res = await api<ReturnData<{ user: User }>>(`/admin/users/${id}/restore`, {
+                    method: 'POST'
+                })
 
-            if (!users.value?.length) {
-                await fetchUsers()
+                if (!users.value?.length) {
+                    await fetchUsers()
+                }
+
+                const restoredUser = res.data?.user as User
+                const user = users.value?.find(y => y.id === id) as User
+
+                Object.assign(user, restoredUser)
+
+                toast.push({
+                    message: res?.message || 'User restored successfully.',
+                    type: 'success',
+                })
+            } catch (err) {
+                toast.push({
+                    message: 'Something went wrong. Please try again.',
+                    type: 'error',
+                })
             }
-
-            const restoredUser = res.data?.user as User
-            const user = users.value?.find(y => y.id === id) as User
-
-            Object.assign(user, restoredUser)
         }
 
         return {
