@@ -1,8 +1,10 @@
 import { defineStore } from 'pinia';
-import { ref } from 'vue';
+import { reactive, ref } from 'vue';
 import { api } from '~/utils/api';
-import type { ReturnData } from '../types/api';
-import type { Formation, FormationData } from '../types/formation';
+import type { meta, ReturnData } from '../types/api';
+import type { Formation } from '../types/formation';
+import { useToastStore } from './toast';
+import { PaginatedData } from '../types/pagination';
 
 export const useFormation = defineStore(
     'formation',
@@ -10,28 +12,66 @@ export const useFormation = defineStore(
         const formations = ref<Formation[] | null>(null)
         const formation = ref<Formation | null>(null)
         const archived_formations = ref<Formation[] | null>(null)
+        const toast = useToastStore()
+        const meta: meta = reactive({
+            current_page: 0,
+            last_page: 0,
+            next_page_url: null,
+            prev_page_url: null,
+            total: 0,
+            per_page: 0,
+            from: 0,
+            to: 0
+        })
 
-        async function fetchFormations(): Promise<void> {
-            const res = await api<ReturnData<FormationData>>('/admin/formations')
-            formations.value = res.data?.formations as Formation[]
-            archived_formations.value = res.data?.archived_formations as Formation[]
+        async function fetchFormations(page: number = 1, per_page: number = 5): Promise<void> {
+            try {
+                const res = await api<ReturnData<{ formations: PaginatedData<Formation[]>, archived_formations: PaginatedData<Formation[]>}>>(`/admin/formations?page=${page}&per_page=${per_page}`)
+                formations.value = res.data?.formations?.data as Formation[]
+                archived_formations.value = res.data?.archived_formations?.data as Formation[]
+                Object.assign(meta, res.data?.formations)
+            } catch (err) {
+                toast.push({
+                    message: 'Something went wrong. Please try again.',
+                    type: 'error',
+                })
+            }
         }
 
         async function fetchFormation(id: number): Promise<void> {
-            const res = await api<ReturnData<{ formation: Formation}>>(`/admin/formations/${id}`)
-            formation.value = res.data?.formation as Formation
+            try {
+                const res = await api<ReturnData<{ formation: Formation}>>(`/admin/formations/${id}`)
+                formation.value = res.data?.formation as Formation
+            } catch (err) {
+                toast.push({
+                    message: 'Something went wrong. Please try again.',
+                    type: 'error',
+                })
+            }
         }
 
-        async function createFormation(data: { grade_level_id: number, title: string, description: string, duration: number, capacity: number }): Promise<ReturnData<any>> {
+        async function createFormation(data: { grade_level_id: number, title: string, description: string, duration: number, capacity: number }): Promise<ReturnData> {
             try{
                 const res = await api<ReturnData<{ formation: Formation, message: string}>>('/admin/formations', {
                     method: 'POST',
                     body: data
                 })
-                formations.value?.push(res.data?.formation as Formation)
+
+                if(!formations.value?.length){
+                    await fetchFormations()
+                }
+
+                formations.value?.unshift(res.data?.formation as Formation)
+
+                toast.push({
+                    message: res?.message || 'Formation created successfully.',
+                    type: 'success',
+                })
+
                 return {
                     success: true,
-                    data: res.data?.message
+                    data: null,
+                    message: res.data?.message || 'Formation created successfully.'
                 }
             } catch (err: any) {
                 if (err?.data?.errors) {
@@ -42,8 +82,16 @@ export const useFormation = defineStore(
                         grade_level_id = grade_level_id ? grade_level_id[0] : "";
                         capacity = capacity ? capacity[0] : "";
                         duration = duration ? duration[0] : "";
+
+                        toast.push({
+                            message: "Validation error. Please check your input.",
+                            type: 'error',
+                        })
+
                         return {
                             success: false,
+                            data: null,
+                            message: "Validation error. Please check your input.",
                             errors: {
                                 title,
                                 description,
@@ -54,15 +102,23 @@ export const useFormation = defineStore(
                         }
                     }
                 }
+
+                toast.push({
+                    message: err?.data?.message || 'Something went wrong. Please try again.',
+                    type: 'error',
+                })
+
                 return {
                     success: false,
+                    data: null,
+                    message: err?.message || 'Something went wrong. Please try again.',
                     errors: {
                         title: '',
                         description: '',
                         grade_level_id: '',
                         capacity: '',
                         duration: '',
-                        message: err.data.message
+                        message: err?.message || 'Something went wrong. Please try again.'
                     },
                 }
             }
@@ -83,9 +139,16 @@ export const useFormation = defineStore(
                 const formation = formations.value?.find(y => y.id === id) as Formation
 
                 Object.assign(formation, restoredFormation)
+
+                toast.push({
+                    message: res?.message || 'Formation updated successfully.',
+                    type: 'success',
+                })
+
                 return {
                     success: true,
-                    data: res.data?.message
+                    data: null,
+                    message: res.data?.message || 'Formation updated successfully.'
                 }
             } catch (err: any) {
                 if (err?.data?.errors) {
@@ -96,8 +159,16 @@ export const useFormation = defineStore(
                         grade_level_id = grade_level_id ? grade_level_id[0] : "";
                         capacity = capacity ? capacity[0] : "";
                         duration = duration ? duration[0] : "";
+
+                        toast.push({
+                            message: "Validation error. Please check your input.",
+                            type: 'error',
+                        })
+
                         return {
                             success: false,
+                            data: null,
+                            message: "Validation error. Please check your input.",
                             errors: {
                                 title,
                                 description,
@@ -110,46 +181,72 @@ export const useFormation = defineStore(
                 }
                 return {
                     success: false,
+                    data: null,
+                    message: err?.message || 'Something went wrong. Please try again.',
                     errors: {
                         title: '',
                         description: '',
                         grade_level_id: '',
                         capacity: '',
                         duration: '',
-                        message: err.message
+                        message: err.message || err.data.message || 'Something went wrong. Please try again.'
                     },
                 }
             }
         }
 
         async function archiveFormation(id: number): Promise<void> {
-            const res = await api<ReturnData<{ formation: Formation }>>(`/admin/formations/${id}`, {
-                method: 'DELETE'
-            })
+            try {
+                const res = await api<ReturnData<{ formation: Formation }>>(`/admin/formations/${id}`, {
+                    method: 'DELETE'
+                })
 
-            if(!formations.value?.length){
-                await fetchFormations()
+                if(!formations.value?.length){
+                    await fetchFormations()
+                }
+
+                const restoredFormation = res.data?.formation as Formation
+                const formation = formations.value?.find(y => y.id === id) as Formation
+
+                Object.assign(formation, restoredFormation)
+
+                toast.push({
+                    message: res?.message || 'Formation archived successfully.',
+                    type: 'success',
+                })
+            } catch (err) {
+                toast.push({
+                    message: 'Something went wrong. Please try again.',
+                    type: 'error',
+                })
             }
-
-            const restoredFormation = res.data?.formation as Formation
-            const formation = formations.value?.find(y => y.id === id) as Formation
-
-            Object.assign(formation, restoredFormation)
         }
 
         async function restoreFormation(id: number): Promise<void> {
-            const res = await api<ReturnData<{ formation: Formation }>>(`/admin/formations/${id}/restore`, {
-                method: 'POST'
-            })
+            try {
+                const res = await api<ReturnData<{ formation: Formation }>>(`/admin/formations/${id}/restore`, {
+                    method: 'POST'
+                })
 
-            if(!formations.value?.length){
-                await fetchFormations()
+                if(!formations.value?.length){
+                    await fetchFormations()
+                }
+
+                const restoredFormation = res.data?.formation as Formation
+                const formation = formations.value?.find(y => y.id === id) as Formation
+
+                Object.assign(formation, restoredFormation)
+
+                toast.push({
+                    message: res?.message || 'Formation restored successfully.',
+                    type: 'success',
+                })
+            } catch (err) {
+                toast.push({
+                    message: 'Something went wrong. Please try again.',
+                    type: 'error',
+                })
             }
-
-            const restoredFormation = res.data?.formation as Formation
-            const formation = formations.value?.find(y => y.id === id) as Formation
-
-            Object.assign(formation, restoredFormation)
         }
 
         return {
