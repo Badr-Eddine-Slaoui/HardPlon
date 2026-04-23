@@ -1,8 +1,10 @@
 import { defineStore } from 'pinia';
-import { ref } from 'vue';
+import { reactive, ref } from 'vue';
 import { api } from '~/utils/api';
-import type { ReturnData } from '../types/api';
-import type { Brief, BriefData } from '../types/brief';
+import type { meta, ReturnData } from '../types/api';
+import type { Brief } from '../types/brief';
+import type { PaginatedData } from '../types/pagination';
+import { useToastStore } from './toast';
 
 export const useBrief = defineStore(
     'brief',
@@ -10,33 +12,75 @@ export const useBrief = defineStore(
         const briefs = ref<Brief[] | null>(null)
         const brief = ref<Brief | null>(null)
         const archived_briefs = ref<Brief[] | null>(null)
+        const toast = useToastStore()
+        const meta: meta = reactive({
+            current_page: 0,
+            last_page: 0,
+            next_page_url: null,
+            prev_page_url: null,
+            total: 0,
+            per_page: 0,
+            from: 0,
+            to: 0
+        })
 
-        async function fetchBriefs(): Promise<void> {
-            const res = await api<ReturnData<BriefData>>('/teacher/briefs')
-            briefs.value = res.data?.briefs as Brief[]
-            archived_briefs.value = res.data?.archived_briefs as Brief[]
+        async function fetchBriefs(page: number = 1, per_page: number = 5): Promise<void> {
+            try {
+                const res = await api<ReturnData<{ briefs: PaginatedData<Brief[]>, archived_briefs: PaginatedData<Brief[]>}>>(`/teacher/briefs?page=${page}&per_page=${per_page}`)
+                briefs.value = res.data?.briefs?.data as Brief[]
+                archived_briefs.value = res.data?.archived_briefs?.data as Brief[]
+                Object.assign(meta, res.data?.briefs)
+            } catch (err) {
+                toast.push({
+                    message: 'Something went wrong. Please try again.',
+                    type: 'error',
+                })
+            }
         }
 
         async function fetchBrief(id: number): Promise<void> {
-            const res = await api<ReturnData<{ brief: Brief}>>(`/teacher/briefs/${id}`)
-            brief.value = res.data?.brief as Brief
+            try {
+                const res = await api<ReturnData<{ brief: Brief}>>(`/teacher/briefs/${id}`)
+                brief.value = res.data?.brief as Brief
+            } catch (err) {
+                toast.push({
+                    message: 'Something went wrong. Please try again.',
+                    type: 'error',
+                })
+            }
         }
 
-        async function fetchStudentBriefs(): Promise<Brief[]> {
-            const res = await api<ReturnData<BriefData>>('/student/briefs')
-            return res.data?.briefs as Brief[]
+        async function fetchStudentBriefs(): Promise<Brief[] | []> {
+            try {
+                const res = await api<ReturnData<{ briefs: Brief[] }>>('/student/briefs')
+                return res.data?.briefs as Brief[]
+            } catch (err) {
+                toast.push({
+                    message: 'Something went wrong. Please try again.',
+                    type: 'error',
+                })
+                return []
+            }
         }
 
-        async function createBrief(data: { sprint_id: number, class_group_id: number, title: string, description: string, is_collective: boolean, content: string, start_date: string, end_date: string, skill_levels: { level_id: number, skill_id: number}[] }): Promise<ReturnData<any>> {
+        async function createBrief(data: { sprint_id: number, class_group_id: number, title: string, description: string, is_collective: boolean, content: string, start_date: string, end_date: string, skill_levels: { level_id: number, skill_id: number}[] }): Promise<ReturnData> {
             try{
-                const res = await api<ReturnData<{ brief: Brief, message: string}>>('/teacher/briefs', {
+                const res = await api<ReturnData<{ brief: Brief}>>('/teacher/briefs', {
                     method: 'POST',
                     body: data
                 })
-                briefs.value?.push(res.data?.brief as Brief)
+
+                briefs.value?.unshift(res.data?.brief as Brief)
+
+                toast.push({
+                    message: res?.message || 'Brief created successfully.',
+                    type: 'success',
+                })
+
                 return {
                     success: true,
-                    data: res.data?.message
+                    data: null,
+                    message: res.message
                 }
             } catch (err: any) {
                 if (err?.data?.errors) {
@@ -51,8 +95,16 @@ export const useBrief = defineStore(
                         start_date = start_date ? start_date[0] : "";
                         end_date = end_date ? end_date[0] : "";
                         skill_levels = skill_levels ? skill_levels[0] : "";
+
+                        toast.push({
+                            message: "Validation error. Please check your input.",
+                            type: 'error',
+                        })
+
                         return {
                             success: false,
+                            message: "Validation error. Please check your input.",
+                            data: null,
                             errors: {
                                 sprint_id,
                                 class_group_id,
@@ -67,8 +119,16 @@ export const useBrief = defineStore(
                         }
                     }
                 }
+
+                toast.push({
+                    message: err?.data?.message || 'Something went wrong. Please try again.',
+                    type: 'error',
+                })
+
                 return {
                     success: false,
+                    data: null,
+                    message: err?.data?.message || 'Something went wrong. Please try again.',
                     errors: {
                         sprint_id: '',
                         class_group_id: '',
@@ -85,7 +145,7 @@ export const useBrief = defineStore(
             }
         }
 
-        async function updateBrief(id: number, data: { sprint_id: number, class_group_id: number, title: string, description: string, is_collective: boolean, content: string, start_date: string, end_date: string, skill_levels: { level_id: number, skill_id: number}[] }): Promise<ReturnData<any>> {
+        async function updateBrief(id: number, data: { sprint_id: number, class_group_id: number, title: string, description: string, is_collective: boolean, content: string, start_date: string, end_date: string, skill_levels: { level_id: number, skill_id: number}[] }): Promise<ReturnData> {
             try{
                 const res = await api<ReturnData<{ brief: Brief, message: string}>>(`/teacher/briefs/${id}`, {
                     method: 'PUT',
@@ -100,9 +160,16 @@ export const useBrief = defineStore(
                 const year = briefs.value?.find(y => y.id === id) as Brief
 
                 Object.assign(year, restoredBrief)
+
+                toast.push({
+                    message: res?.message || 'Brief updated successfully.',
+                    type: 'success',
+                })
+
                 return {
                     success: true,
-                    data: res.data?.message
+                    message: res?.message || 'Brief updated successfully.',
+                    data: null
                 }
             } catch (err: any) {
                 if (err?.data?.errors) {
@@ -117,8 +184,16 @@ export const useBrief = defineStore(
                         start_date = start_date ? start_date[0] : "";
                         end_date = end_date ? end_date[0] : "";
                         skill_levels = skill_levels ? skill_levels[0] : "";
+
+                        toast.push({
+                            message: "Validation error. Please check your input.",
+                            type: 'error',
+                        })
+
                         return {
                             success: false,
+                            message: "Validation error. Please check your input.",
+                            data: null,
                             errors: {
                                 sprint_id,
                                 class_group_id,
@@ -133,8 +208,16 @@ export const useBrief = defineStore(
                         }
                     }
                 }
+
+                toast.push({
+                    message: err?.data?.message || 'Something went wrong. Please try again.',
+                    type: 'error',
+                })
+
                 return {
                     success: false,
+                    data: null,
+                    message: err?.data?.message || 'Something went wrong. Please try again.',
                     errors: {
                         sprint_id: '',
                         class_group_id: '',
@@ -145,40 +228,64 @@ export const useBrief = defineStore(
                         start_date: '',
                         end_date: '',
                         skill_levels: '',
-                        message: err.message
+                        message: err.message || 'Something went wrong. Please try again.'
                     },
                 }
             }
         }
 
         async function archiveBrief(id: number): Promise<void> {
-            const res = await api<ReturnData<{ brief: Brief }>>(`/teacher/briefs/${id}`, {
-                method: 'DELETE'
-            })
+            try {
+                const res = await api<ReturnData<{ brief: Brief }>>(`/teacher/briefs/${id}`, {
+                    method: 'DELETE'
+                })
 
-            if(!briefs.value?.length){
-                await fetchBriefs()
+                if(!briefs.value?.length){
+                    await fetchBriefs()
+                }
+
+                const restoredBrief = res.data?.brief as Brief
+                const year = briefs.value?.find(y => y.id === id) as Brief
+
+                Object.assign(year, restoredBrief)
+
+                toast.push({
+                    message: res?.message || 'Brief archived successfully.',
+                    type: 'success',
+                })
+            } catch (err) {
+                toast.push({
+                    message: 'Something went wrong. Please try again.',
+                    type: 'error',
+                })
             }
-
-            const restoredBrief = res.data?.brief as Brief
-            const year = briefs.value?.find(y => y.id === id) as Brief
-
-            Object.assign(year, restoredBrief)
         }
 
         async function restoreBrief(id: number): Promise<void> {
-            const res = await api<ReturnData<{ brief: Brief }>>(`/teacher/briefs/${id}/restore`, {
-                method: 'POST'
-            })
+            try {
+                const res = await api<ReturnData<{ brief: Brief }>>(`/teacher/briefs/${id}/restore`, {
+                    method: 'POST'
+                })
 
-            if(!briefs.value?.length){
-                await fetchBriefs()
+                if(!briefs.value?.length){
+                    await fetchBriefs()
+                }
+                
+                const restoredBrief = res.data?.brief as Brief
+                const year = briefs.value?.find(y => y.id === id) as Brief
+
+                Object.assign(year, restoredBrief)
+
+                toast.push({
+                    message: res?.message || 'Brief restored successfully.',
+                    type: 'success',
+                })
+            } catch (err) {
+                toast.push({
+                    message: 'Something went wrong. Please try again.',
+                    type: 'error',
+                })
             }
-            
-            const restoredBrief = res.data?.brief as Brief
-            const year = briefs.value?.find(y => y.id === id) as Brief
-
-            Object.assign(year, restoredBrief)
         }
 
         return {
