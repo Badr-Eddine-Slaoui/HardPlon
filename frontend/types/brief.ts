@@ -36,8 +36,3 @@ export interface Brief {
     teacher: User;
     brief_skill_levels: BriefSkillLevel[];
 }
-
-export interface BriefData {
-    briefs: Brief[]
-    archived_briefs: Brief[]
-}
