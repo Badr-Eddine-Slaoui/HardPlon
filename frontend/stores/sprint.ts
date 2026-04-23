@@ -286,6 +286,7 @@ export const useSprint = defineStore(
             sprints,
             sprint,
             archived_sprints,
+            meta,
             fetchSprints,
             fetchSprint,
             fetchSprintsByFormationId,

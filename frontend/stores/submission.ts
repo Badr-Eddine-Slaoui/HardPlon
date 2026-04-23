@@ -129,6 +129,7 @@ export const useSubmission = defineStore(
         return {
             submissions,
             submission,
+            meta,
             fetchStudentSubmissions,
             fetchSubmissionsByStudentId,
             fetchSubmission,

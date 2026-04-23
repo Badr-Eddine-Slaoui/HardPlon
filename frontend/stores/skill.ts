@@ -272,6 +272,7 @@ export const useSkill = defineStore(
             skills,
             skill,
             archived_skills,
+            meta,
             fetchSkills,
             fetchByFormation,
             fetchSkill,

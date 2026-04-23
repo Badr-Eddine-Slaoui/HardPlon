@@ -253,6 +253,7 @@ export const useFormation = defineStore(
             formations,
             formation,
             archived_formations,
+            meta,
             fetchFormations,
             fetchFormation,
             createFormation,

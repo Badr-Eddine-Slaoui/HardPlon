@@ -253,6 +253,7 @@ export const useGradeLevel = defineStore(
             grade_levels,
             grade_level,
             archive_grade_levels,
+            meta,
             fetchGradeLevels,
             fetchGradeLevel,
             createGradeLevel,

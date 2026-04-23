@@ -292,6 +292,7 @@ export const useBrief = defineStore(
             briefs,
             brief,
             archived_briefs,
+            meta,
             fetchBriefs,
             fetchStudentBriefs,
             fetchBrief,

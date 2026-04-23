@@ -248,6 +248,7 @@ export const useLevel = defineStore(
             levels,
             level,
             archived_levels,
+            meta,
             fetchLevels,
             fetchLevel,
             createLevel,

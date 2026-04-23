@@ -291,6 +291,7 @@ export const useClassGroup = defineStore(
             class_groups,
             class_group,
             archived_class_groups,
+            meta,
             fetchClassGroups,
             fetchTeacherClassGroups,
             fetchClassGroup,

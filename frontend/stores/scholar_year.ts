@@ -250,6 +250,7 @@ export const useScholarYear = defineStore(
             scholar_year,
             archived_years,
             current_year,
+            meta,
             fetchScholarYears,
             fetchScholarYear,
             createScholarYear,

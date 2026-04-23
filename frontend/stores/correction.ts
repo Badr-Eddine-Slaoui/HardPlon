@@ -75,6 +75,7 @@ export const useCorrection = defineStore(
         return {
             corrections,
             correction,
+            meta,
             fetchStudentCorrections,
             fetchStudentCorrection,
             fetchStudentCorrectionsById,
