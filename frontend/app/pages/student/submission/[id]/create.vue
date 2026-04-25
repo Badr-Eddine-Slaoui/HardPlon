@@ -1,7 +1,7 @@
 <script setup lang="ts">
     import { useSubmission } from '~~/stores/submission';
     import { useBrief } from '~~/stores/brief';
-import type { ReturnData } from '~~/types/api';
+    import type { ReturnData } from '~~/types/api';
 
     useHead({
         title: 'Student Dashboard - Bounty Board'
@@ -12,65 +12,23 @@ import type { ReturnData } from '~~/types/api';
     const store = useSubmission();
     const briefs = useBrief();
 
-    const links = ref([] as Array<{ [key: string]: string }>)
-
-    const link = reactive({
-        label: '',
-        url: '',
-    })
-
-    const link_errs = ref({
-        label: '',
-        url: '',
-    })
-
-    const openLinksModal = () => {
-        const modal = document.getElementById('links-modal') as HTMLElement;
-        modal.classList.remove('hidden');
-    }
-
-    const closeLinksModal = () => {
-        const modal = document.getElementById('links-modal') as HTMLElement;
-        modal.classList.add('hidden');
-    }
-
-    const addLink = () => {
-        if (link.label === '' || link.url === '') {
-            link_errs.value.label = link.label === '' ? 'Link label is required' : '';
-            link_errs.value.url = link.url === '' ? 'Link url is required' : '';
-            return;
-        }
-        links.value.push({[link.label]: link.url});
-        closeLinksModal();
-        link.label = '';
-        link.url = '';
-        link_errs.value.label = '';
-        link_errs.value.url = '';
-        console.log(links.value);
-    }
-
-    const removeLink = (index: number) => {
-        links.value.splice(index, 1);
-    }
-
     const form = reactive({
         brief_id: id,
         message: '',
-        links: [] as Array<{ [key: string]: string }>,
+        link: '',
     })
 
     const errs = ref({
         brief_id: '',
         message: '',
-        links: '',
+        link: '',
     })
 
     onMounted(async() => {
-        await briefs.fetchBrief(id);
+        await briefs.fetchStudentBrief(id)
     })
 
     const submit = async () => {
-        form.links = links.value;
         const res : ReturnData<any> = await store.createSubmission(form);
         if(res.success) {
             navigateTo('/student/submission')
@@ -109,7 +67,7 @@ import type { ReturnData } from '~~/types/api';
                 <div class="flex-1 p-8 overflow-y-auto">
                     <div class="max-w-2xl mx-auto space-y-6">
                         <div class="flex items-center gap-2 mb-2">
-                            <NuxtLink to="/student/submission"
+                            <NuxtLink to="/student/briefs"
                                 class="text-primary hover:text-primary/80 flex items-center gap-1 text-sm font-bold">
                                 <span class="material-symbols-outlined text-sm">arrow_back</span>
                                 Back to Board
@@ -126,7 +84,7 @@ import type { ReturnData } from '~~/types/api';
                                 </div>
                                 <div class="text-right">
                                     <p class="text-[10px] text-slate-500 uppercase font-black">Deadline</p>
-                                    <p class="text-sm font-bold text-accent-red">{{ (new Date(briefs.brief?.end_date as string)).toLocaleString('en-US', { month: 'long', day: 'numeric', year: 'numeric'})  }}</p>
+                                    <p class="text-sm font-bold text-accent-red">{{ briefs.brief?.end_date ? (new Date(briefs.brief?.end_date as string)).toLocaleString('en-US', { month: 'long', day: 'numeric', year: 'numeric'}) : 'N/A'  }}</p>
                                 </div>
                             </div>
                             <div
@@ -135,7 +93,7 @@ import type { ReturnData } from '~~/types/api';
                                 <div class="bg-black/5 dark:bg-black/20 p-4 rounded-lg border-l-4 border-primary">
                                     <h4 class="text-xs font-bold uppercase mb-2">Requirements:</h4>
                                     <ul class="list-disc list-inside text-xs space-y-1">
-                                        <li v-for="brief_skill_level in briefs.brief?.brief_skill_levels">{{ brief_skill_level.skill.code }}: {{ brief_skill_level.skill.title }}, Required level: {{ brief_skill_level.level.name }}</li>
+                                        <li v-for="brief_skill_level in briefs.brief?.brief_skill_levels" :key="brief_skill_level.id">{{ brief_skill_level.skill.code }}: {{ brief_skill_level.skill.title }}, Required level: {{ brief_skill_level.level.name }}</li>
                                     </ul>
                                 </div>
                             </div>
@@ -163,27 +121,16 @@ import type { ReturnData } from '~~/types/api';
                             <p v-if="errs.message" class="text-red-500 text-xs mt-1">{{ errs.message }}</p>
                         </section>
                         <section class="space-y-4">
-                            <div class="flex items-center justify-between">
-                                <label class="text-sm font-bold adventure-title tracking-wide">Project Links</label>
-                                <span class="text-[10px] font-bold text-slate-400 uppercase">Up to 5 allowed</span>
-                            </div>
-                            <div class="space-y-3">
-                                <div v-for="(link, index) in links"
-                                    class="flex items-center gap-3 p-3 bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-[#224249] rounded-lg">
-                                    <span class="material-symbols-outlined text-primary text-sm">anchor</span>
-                                    <input :title="Object.keys(link)[0] as string"
-                                        class="bg-transparent border-none p-0 text-xs w-full focus:ring-0 text-slate-600 dark:text-slate-300"
-                                        readonly type="text" :placeholder="link[Object.keys(link)[0] as string]" />
-                                    <button @click="removeLink(index)" class="text-slate-400 hover:text-accent-red">
-                                        <span class="material-symbols-outlined text-lg">close</span>
-                                    </button>
+                            <label class="block text-sm font-bold adventure-title tracking-wide" for="link">Repository Link</label>
+                            <div class="relative group">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <span class="material-symbols-outlined text-primary group-focus-within:text-pirate-gold transition-colors">anchor</span>
                                 </div>
-                                <button v-if="links.length < 5" @click="openLinksModal()"
-                                    class="w-full py-3 border-2 border-dashed border-slate-200 dark:border-[#224249] rounded-lg text-slate-400 hover:border-primary hover:text-primary transition-all flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-wider">
-                                    <span class="material-symbols-outlined text-sm">add</span>
-                                    Add Link
-                                </button>
+                                <input v-model="form.link" id="link" autocomplete="off"
+                                    class="block w-full pl-11 bg-slate-50 dark:bg-background-dark border-slate-200 dark:border-[#224249] text-sm rounded-xl focus:ring-primary focus:border-primary transition-all py-3.5"
+                                    placeholder="https://github.com/crew/project-one" type="url" />
                             </div>
+                            <p v-if="errs.link" class="text-red-500 text-xs mt-1">{{ errs.link }}</p>
                         </section>
                         <div class="p-4 bg-pirate-gold/5 border border-pirate-gold/20 rounded-xl">
                             <div class="flex gap-3">
@@ -220,54 +167,6 @@ import type { ReturnData } from '~~/types/api';
                 </div>
             </footer>
         </main>
-        <div id="links-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-overlay hidden">
-            <div
-                class="w-full max-w-md bg-deep-ocean border-2 border-pirate-gold/30 rounded-2xl overflow-hidden shadow-[0_0_50px_rgba(212,175,55,0.15)]">
-                <div class="p-6">
-                    <h3 class="text-2xl font-bold adventure-title text-pirate-gold mb-2 tracking-wide uppercase">Secure New
-                        Link</h3>
-                    <p class="text-sm text-slate-400 mb-6">Paste the coordinates to your findings (GitHub, Figma, or Drive
-                        links)</p>
-                    <div class="space-y-6">
-                        <div>
-                            <label for="label" class="block text-sm font-bold adventure-title tracking-wide mb-2">Label:</label>
-                            <div class="relative group">
-                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <span
-                                        class="material-symbols-outlined text-primary group-focus-within:text-pirate-gold transition-colors">anchor</span>
-                                </div>
-                                <input v-model="link.label" id="label" autocomplete="off"
-                                    class="block w-full pl-11 bg-background-dark/50 border-slate-700 text-white text-sm rounded-xl focus:ring-pirate-gold focus:border-pirate-gold transition-all py-3.5"
-                                    placeholder="GitHub" type="url" />
-                            </div>
-                            <p v-if="link_errs.label" class="text-red-500 text-xs mt-1">{{ link_errs.label }}</p>
-                        </div>
-                        <div>
-                            <label for="url" class="block text-sm font-bold adventure-title tracking-wide mb-2">URL:</label>
-                            <div class="relative group">
-                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <span
-                                        class="material-symbols-outlined text-primary group-focus-within:text-pirate-gold transition-colors">anchor</span>
-                                </div>
-                                <input v-model="link.url" id="url" autocomplete="off"
-                                    class="block w-full pl-11 bg-background-dark/50 border-slate-700 text-white text-sm rounded-xl focus:ring-pirate-gold focus:border-pirate-gold transition-all py-3.5"
-                                    placeholder="https://github.com/crew/project-one" type="url" />
-                            </div>
-                            <p v-if="link_errs.url" class="text-red-500 text-xs mt-1">{{ link_errs.url }}</p>
-                        </div>
-                        <div class="flex flex-col gap-3">
-                            <button @click="addLink()"
-                                class="w-full bg-pirate-gold hover:bg-pirate-gold-dark text-background-dark py-4 rounded-xl font-black text-sm transition-all shadow-lg adventure-title uppercase tracking-widest text-lg">
-                                Anchor Link
-                            </button>
-                            <button @click="closeLinksModal()"
-                                class="text-primary hover:text-primary/80 text-xs font-bold uppercase tracking-widest text-center py-2 transition-colors">
-                                Cancel
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
     </NuxtLayout>
 </template>
+e>
