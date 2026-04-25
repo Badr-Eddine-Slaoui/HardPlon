@@ -27,11 +27,13 @@ export const useCorrection = defineStore(
                 const res = await api<ReturnData<{ corrections: Correction[]}>>('/student/corrections')
                 corrections.value = res.data?.corrections as Correction[]
                 Object.assign(meta, res.data?.corrections)
-            } catch (err) {
-                toast.push({
-                    message: 'Something went wrong. Please try again.',
-                    type: 'error',
-                })
+            } catch (err: any) {
+                if(err.status !== 404){
+                    toast.push({
+                        message: 'Something went wrong. Please try again.',
+                        type: 'error',
+                    })
+                }
             }
         }
 
@@ -39,11 +41,13 @@ export const useCorrection = defineStore(
             try {
                 const res = await api<ReturnData<{ correction: Correction}>>(`/student/corrections/${brief_id}`)
                 correction.value = res.data?.correction as Correction
-            } catch (err) {
-                toast.push({
-                    message: 'Something went wrong. Please try again.',
-                    type: 'error',
-                })
+            } catch (err: any) {
+                if(err.status !== 404){
+                    toast.push({
+                        message: 'Something went wrong. Please try again.',
+                        type: 'error',
+                    })
+                }
             }
         }
 
@@ -51,11 +55,14 @@ export const useCorrection = defineStore(
             try {
                 const res = await api<ReturnData<{ correction: Correction}>>(`/teacher/corrections/${brief_id}/${student_id}`)
                 correction.value = res.data?.correction as Correction
-            } catch (err) {
-                toast.push({
-                    message: 'Something went wrong. Please try again.',
-                    type: 'error',
-                })
+            } catch (err: any) {
+                correction.value = null
+                if (err.status !== 404) {
+                    toast.push({
+                        message: 'Something went wrong. Please try again.',
+                        type: 'error',
+                    })
+                }
             }
         }
 
