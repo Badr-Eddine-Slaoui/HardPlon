@@ -31,7 +31,10 @@ class BriefVersionController extends Controller
 
             $architecture_rules['required'] = $request->required_files;
             $architecture_rules['optional'] = $request->optional_files;
-            $architecture_rules['forbidden'] = array_merge($architecture_rules['forbidden'], $request->forbidden_files);
+            $forbidden = array_values(array_unique(
+                array_merge($architecture_rules['forbidden'], $request->forbidden_files)
+            ));
+            $architecture_rules['forbidden'] = $forbidden;
             $architecture_rules['patterns'] = $request->patterns;
 
             $structure = [];
@@ -72,6 +75,32 @@ class BriefVersionController extends Controller
             ]),
             default => $test_config
         };
+    }
+
+    public function get_brief_versions(int $id)
+    {
+        try {
+            $perPage = request()->get('per_page', 5);
+
+            [$brief_versions, $archived_brief_versions] = Octane::concurrently([
+                fn() => BriefVersion::withoutTrashed()->where('brief_id', $id)->orderByDesc('created_at')->paginate($perPage),
+                fn() => BriefVersion::onlyTrashed()->where('brief_id', $id)->orderByDesc('created_at')->paginate($perPage),
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Successfully fetched brief versions.',
+                'data' => compact('brief_versions', 'archived_brief_versions'),
+            ], 200);
+
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'data' => null,
+                'message' => 'Something went wrong. Please try again.',
+                'code' => $e->getCode(),
+            ], 500);
+        }
     }
 
     /**
