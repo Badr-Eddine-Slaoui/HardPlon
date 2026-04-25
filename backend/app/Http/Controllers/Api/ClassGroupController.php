@@ -45,11 +45,12 @@ class ClassGroupController extends Controller
 
             $class_groups = ClassGroup::withoutTrashed()
                 ->with(["main_teacher.teacher", "sub_teacher.teacher"])
-                ->whereHas('main_teacher', function ($query) {
-                    $query->where('teacher_id', Auth::guard("api")->id());
-                })
-                ->orWhereHas('sub_teacher', function ($query) {
-                    $query->where('teacher_id', Auth::guard("api")->id());
+                ->where(function($query) {
+                    $query->whereHas('main_teacher', function ($q) {
+                        $q->where('teacher_id', Auth::id());
+                    })->orWhereHas('sub_teacher', function ($q) {
+                        $q->where('teacher_id', Auth::id());
+                    });
                 })
                 ->orderByDesc('created_at')
                 ->get();
