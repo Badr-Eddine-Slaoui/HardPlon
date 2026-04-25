@@ -41,9 +41,11 @@ class BriefController extends Controller
     public function get_teacher_briefs()
     {
         try{
+            $per_page = request()->get("per_page", 5);
+
             [$briefs, $archived_briefs] = Octane::concurrently([
-                fn() => Brief::withoutTrashed()->with(['sprint'])->where('teacher_id', Auth::guard('api')->user()->id)->orderByDesc('created_at')->get(),
-                fn() => Brief::onlyTrashed()->with(['sprint'])->where('teacher_id', Auth::guard('api')->user()->id)->orderByDesc('created_at')->get()
+                fn() => Brief::withoutTrashed()->with(['sprint', "class_group", "teacher", "brief_skill_levels.skill", "brief_skill_levels.level", "stack", "problems.language", "problems.test_cases"])->where('teacher_id', Auth::guard('api')->user()->id)->orderByDesc('created_at')->paginate($per_page),
+                fn() => Brief::onlyTrashed()->with(['sprint', "class_group", "teacher", "brief_skill_levels.skill", "brief_skill_levels.level", "stack", "problems.language", "problems.test_cases"])->where('teacher_id', Auth::guard('api')->user()->id)->orderByDesc('created_at')->paginate($per_page)
             ]);
 
             return response()->json([
@@ -64,7 +66,7 @@ class BriefController extends Controller
     public function get_student_briefs(){
         try {
             $briefs = Brief::withoutTrashed()
-                ->with(["sprint", "class_group", "teacher", "brief_skill_levels.skill", "brief_skill_levels.level", "stack"])
+                ->with(["sprint", "class_group", "teacher", "brief_skill_levels.skill", "brief_skill_levels.level", "stack", "problems.language", "problems.test_cases"])
                 ->where("class_group_id", Auth::user()->id_class)
                 ->orderByDesc("created_at")
                 ->get();
@@ -87,7 +89,18 @@ class BriefController extends Controller
     {
         try {
 
-            $brief = Brief::find($id);
+            $brief = Brief::withoutTrashed()
+                ->with([
+                    "sprint",
+                    "teacher",
+                    "class_group",
+                    "brief_skill_levels.skill",
+                    "brief_skill_levels.level",
+                    "stack",
+                    "problems.language",
+                    "brief_versions" => fn ($query) => $query->latest(),
+                ])
+                ->find($id);
 
             if (!$brief) {
                 return response()->json([
@@ -96,8 +109,6 @@ class BriefController extends Controller
                     "message" => "Brief not found."
                 ], 404);
             }
-
-            $brief->loadMissing(["sprint", "class_group.formation", "teacher", "brief_skill_levels.skill", "brief_skill_levels.level", "stack"]);
 
             return response()->json([
                 "success"=> true,
@@ -305,6 +316,38 @@ class BriefController extends Controller
                 "data" => null,
                 "message" => "Something went wrong. Please try again.",
                 "code" => $e->getCode()
+            ], 500);
+        }
+    }
+
+    public function get_class_group_briefs(int $id){
+        try {
+
+            $briefs = Brief::withoutTrashed()
+                ->with([
+                    "sprint",
+                    "teacher",
+                    "class_group",
+                    "brief_skill_levels.skill",
+                    "brief_skill_levels.level",
+                    "stack",
+                    "problems.language",
+                    "brief_versions"
+                ])
+                ->where("class_group_id", $id)
+                ->orderByDesc("created_at")
+                ->get();
+
+            return response()->json([
+                "success" => true,
+                "data" => compact("briefs"),
+                "message" => "Successfully fetched class group briefs."
+            ], 200);
+        } catch (\Throwable $e) {
+            return response()->json([
+                "success" => false,
+                "message" => "Something went wrong. Please try again.",
+                "error" => $e->getMessage()
             ], 500);
         }
     }
