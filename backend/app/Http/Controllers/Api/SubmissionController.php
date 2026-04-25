@@ -15,7 +15,19 @@ class SubmissionController extends Controller
 
         try {
             $submissions = Submission::withoutTrashed()
-                ->with(["student", "squad.squad_members.student", "brief.sprint", "brief.class_group", "brief.teacher", "brief.brief_skill_levels.skill", "brief.brief_skill_levels.level"])
+                ->with([
+                    'student',
+                    'brief.stack',
+                    'brief.brief_skill_levels.skill',
+                    'brief.brief_skill_levels.level',
+                    'brief.problems.language',
+                    'brief.problems.test_cases',
+                    'brief.brief_versions' => fn($q) => $q->latest(),
+                    'evaluationJob',
+                    'problemSubmissions.problem.language',
+                    'problemSubmissionJob',
+                    "correction"
+                ])
                 ->where("student_id", $id ?? Auth::id())
                 ->orderByDesc("created_at")
                 ->get();
@@ -38,7 +50,22 @@ class SubmissionController extends Controller
     public function show(Request $request, int $id)
     {
         try {
-            $submission = Submission::with(["student", "squad.squad_members.student", "brief.sprint", "brief.class_group", "brief.teacher", "brief.brief_skill_levels.skill", "brief.brief_skill_levels.level"])->find($id);
+            $submission = Submission::with([
+                "student",
+                "squad.squad_members.student",
+                "brief.sprint",
+                "brief.class_group",
+                "brief.teacher",
+                "brief.brief_skill_levels.skill",
+                "brief.brief_skill_levels.level",
+                "brief.problems.language",
+                "brief.problems.test_cases",
+                "evaluationJob",
+                "problemSubmissions.problem.language",
+                "problemSubmissionJob",
+                "correction.correction_details.brief_skill_level.skill",
+                "correction.correction_details.brief_skill_level.level"
+            ])->find($id);
 
             if (!$submission) {
                 return response()->json([
@@ -59,7 +86,8 @@ class SubmissionController extends Controller
                 "success" => false,
                 "data" => null,
                 "message" => "Something went wrong. Please try again.",
-                "code" => $e->getCode()
+                "code" => $e->getCode(),
+                "error" => $e->getMessage()
             ], 500);
         }
     }
@@ -186,6 +214,42 @@ class SubmissionController extends Controller
                 "data" => null,
                 "message" => "Something went wrong. Please try again.",
                 "code" => $e->getCode()
+            ], 500);
+        }
+    }
+
+    public function get_student_brief_submission(int $briefId, int $studentId)
+    {
+        try {
+            $submission = Submission::withoutTrashed()
+                ->with([
+                    'student',
+                    'brief.stack',
+                    'brief.brief_skill_levels.skill',
+                    'brief.brief_skill_levels.level',
+                    'brief.problems.language',
+                    'brief.problems.test_cases',
+                    'brief.brief_versions' => fn($q) => $q->latest(),
+                    'evaluationJob',
+                    'problemSubmissions.problem.language',
+                    'problemSubmissionJob',
+                    "correction"
+                ])
+                ->where('brief_id', $briefId)
+                ->where('student_id', $studentId)
+                ->first();
+
+            return response()->json([
+                'success' => true,
+                'data' => compact('submission'),
+                'message' => 'Successfully fetched student brief submission.'
+            ], 200);
+
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => "Something went wrong. Please try again.",
+                'error' => $e->getMessage()
             ], 500);
         }
     }
