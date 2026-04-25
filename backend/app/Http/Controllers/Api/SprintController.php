@@ -37,7 +37,8 @@ class SprintController extends Controller
         }
     }
 
-    public function get_sprints_by_formation_id(int $id){
+    public function get_sprints_by_formation_id($id){
+        $id = (int) $id;
         try {
             $sprints = Sprint::withoutTrashed()
                 ->with(["formation", "sprint_skills.skill"])
@@ -60,7 +61,8 @@ class SprintController extends Controller
         }
     }
 
-    public function get_sprint_skills(int $id){
+    public function get_sprint_skills($id){
+        $id = (int) $id;
         try {
             $skills = SprintSkill::withoutTrashed()
                 ->with(["skill","skill.skill_levels.level"])
