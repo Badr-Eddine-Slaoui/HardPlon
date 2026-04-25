@@ -5,6 +5,7 @@
     import type { ClassGroup } from '~~/types/class_group';
     import type { Sprint, SprintSkill } from '~~/types/sprint';
     import { useSprint } from '~~/stores/sprint';
+    import { useStack } from '~~/stores/stack';
 
     useHead({
         title: 'Teacher Dashboard - Create Brief'
@@ -13,6 +14,7 @@
     const store = useBrief()
     const classes = useClassGroup()
     const sprint = useSprint()
+    const stackStore = useStack()
 
     const class_groups: Ref<ClassGroup[] | null> =  ref([])
     const sprints: Ref<Sprint[] | null> =  ref([])
@@ -22,31 +24,37 @@
 
     onMounted(async() => {
         class_groups.value = await classes.fetchTeacherClassGroups();
+        await stackStore.fetchAllStacks();
     })
 
     const getSprints = async () => {
         if(!form.class_group_id) return
-        if(!classes.class_groups) await classes.fetchClassGroups()
-        const formation_id = classes.class_groups?.find(x => x.id == form.class_group_id)?.formation_id as number
-        sprints.value = await sprint.fetchSprintsByFormationId(formation_id);
+        if(!class_groups.value?.length) class_groups.value = await classes.fetchTeacherClassGroups()
+        const formation_id = class_groups.value?.find(x => x.id == form.class_group_id)?.formation_id
+        if (!formation_id) return
+        sprints.value = await sprint.fetchSprintsByFormationId(Number(formation_id));
         form.sprint_id = 0
     }
 
     const getSkills = async () => {
+        if(!form.sprint_id) return
         skills.value = await sprint.fetchSprintSkills(form.sprint_id);
         form.skill_levels = []
         skill_levels.value = skills.value?.map((x: SprintSkill) => ({ level_id: null, skill_id: x.skill.id }))
     }
 
     const setSkillLevel = (skill_id: number, level_id: number) => {
-        let item = skill_levels.value?.find(x => x.skill_id == skill_id) as { level_id: number, skill_id: number }
-        item.level_id = level_id
-        is_all_skills_set.value = skill_levels.value?.every(x => x.level_id != null)
+        let item = skill_levels.value?.find(x => x.skill_id == skill_id)
+        if (item) {
+            item.level_id = level_id
+            is_all_skills_set.value = skill_levels.value?.every(x => x.level_id != null)
+        }
     }
 
     const form = reactive({
         sprint_id: 0,
         class_group_id: 0,
+        stack_id: 0,
         title: '',
         description: '',
         is_collective: false,
@@ -59,6 +67,7 @@
     const errs = ref({
         sprint_id: '',
         class_group_id: '',
+        stack_id: '',
         title: '',
         description: '',
         is_collective: '',
@@ -203,10 +212,25 @@
                                                 <select v-model="form.class_group_id" @change="getSprints()"
                                                     class="w-full bg-background-dark border-[#224249] text-white rounded-xl py-3.5 px-4 appearance-none focus:ring-primary focus:border-primary transition-all cursor-pointer text-sm font-bold"
                                                     id="sprint-select">
-                                                    <option selected disabled>Select a class group</option>
+                                                    <option selected disabled :value="0">Select a class group</option>
                                                     <option v-for="class_group in class_groups" :value="class_group.id">{{ class_group.name }}</option>
                                                 </select>
                                             </div>
+                                            <p v-if="errs.class_group_id" class="text-red-500 text-[10px] mt-1">{{ errs.class_group_id }}</p>
+                                        </div>
+                                        <div class="max-w-md relative mt-4">
+                                            <label
+                                                class="block text-[10px] font-black text-primary uppercase mb-2 tracking-widest"
+                                                for="stack-select">Brief Stack</label>
+                                            <div class="relative">
+                                                <select v-model="form.stack_id"
+                                                    class="w-full bg-background-dark border-[#224249] text-white rounded-xl py-3.5 px-4 appearance-none focus:ring-primary focus:border-primary transition-all cursor-pointer text-sm font-bold"
+                                                    id="stack-select">
+                                                    <option selected disabled :value="0">Select a stack</option>
+                                                    <option v-for="stack in stackStore.all_stacks" :value="stack.id">{{ stack.name }}</option>
+                                                </select>
+                                            </div>
+                                            <p v-if="errs.stack_id" class="text-red-500 text-[10px] mt-1">{{ errs.stack_id }}</p>
                                         </div>
                                     </div>
                                 </div>
