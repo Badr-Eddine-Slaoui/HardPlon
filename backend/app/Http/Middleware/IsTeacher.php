@@ -16,7 +16,8 @@ class IsTeacher
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (Auth::user()->role !== 'TEACHER') {
+        $user = Auth::guard('api')->user();
+        if (!$user || $user->role !== 'TEACHER') {
             return response()->json([
                 'message' => 'Unauthorized'
             ], 403);
