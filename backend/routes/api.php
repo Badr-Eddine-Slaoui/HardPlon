@@ -3,12 +3,14 @@
 use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BriefController;
+use App\Http\Controllers\Api\BriefSkillLevelController;
 use App\Http\Controllers\Api\BriefVersionController;
 use App\Http\Controllers\Api\ClassGroupController;
 use App\Http\Controllers\Api\CorrectionController;
 use App\Http\Controllers\Api\EvaluationJobController;
 use App\Http\Controllers\Api\FormationController;
 use App\Http\Controllers\Api\GradeLevelController;
+use App\Http\Controllers\Api\LanguageController;
 use App\Http\Controllers\Api\LevelController;
 use App\Http\Controllers\Api\ProblemController;
 use App\Http\Controllers\Api\ProblemSubmissionController;
@@ -21,7 +23,9 @@ use App\Http\Controllers\Api\SkillController;
 use App\Http\Controllers\Api\SprintController;
 use App\Http\Controllers\Api\StackController;
 use App\Http\Controllers\Api\StackRunnerController;
+use App\Http\Controllers\Api\StudentController;
 use App\Http\Controllers\Api\SubmissionController;
+use App\Http\Controllers\Api\TeacherController;
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -124,6 +128,7 @@ Route::middleware('auth:api')->group(function () {
         /* Runners Routes */
         Route::controller(RunnerController::class)->group(function () {
             Route::get('/runners', 'index');
+            Route::get('/runners/all', 'getAllRunners');
             Route::get('/runners/{id}', 'show');
             Route::post('/runners', 'store');
             Route::put('/runners/{id}', 'update');
@@ -133,6 +138,7 @@ Route::middleware('auth:api')->group(function () {
         /* Runner Versions Routes */
         Route::controller(RunnerVersionController::class)->group(function () {
             Route::get('/runner-versions', 'index');
+            Route::get('/runner-versions/all', 'getAllRunnerVersions');
             Route::get('/runner-versions/{id}', 'show');
             Route::post('/runner-versions', 'store');
             Route::delete('/runner-versions/{id}', 'destroy');
@@ -145,6 +151,17 @@ Route::middleware('auth:api')->group(function () {
             Route::post('/stacks', 'store');
             Route::put('/stacks/{id}', 'update');
             Route::delete('/stacks/{id}', 'destroy');
+            Route::post('/stacks/{id}/restore', 'restore');
+        });
+
+        /* Language Routes */
+        Route::controller(LanguageController::class)->group(function () {
+            Route::get('/languages', 'index');
+            Route::get('/languages/{id}', 'show');
+            Route::post('/languages', 'store');
+            Route::put('/languages/{id}', 'update');
+            Route::delete('/languages/{id}', 'destroy');
+            Route::post('/languages/{id}/restore', 'restore');
         });
 
         /* Stack Runners Routes */
@@ -169,23 +186,32 @@ Route::middleware('auth:api')->group(function () {
 
     /* Teacher Routes */
     Route::prefix('teacher')->middleware('is_teacher')->group(function () {
+        Route::get('/', [TeacherController::class, 'index']);
+
+        /* Stack Runners Routes */
+        Route::controller(StackController::class)->group(function () {
+            Route::get('/stacks', 'getAllStacks');
+        });
 
         /* Brief Routes */
         Route::controller(BriefController::class)->group(function () {
-            Route::get('/get_teacher_briefs', 'index');
+            Route::get('/get_teacher_briefs', 'get_teacher_briefs');
             Route::get('/briefs/{id}', 'show');
             Route::post('/briefs', 'store');
             Route::put('/briefs/{id}', 'update');
             Route::delete('/briefs/{id}', 'destroy');
             Route::post('/briefs/{id}/restore','restore');
+            Route::get('/briefs/class-group/{id}', 'get_class_group_briefs');
         });
 
         /* Brief Versions Routes */
         Route::controller(BriefVersionController::class)->group(function () {
             Route::get('/brief-versions', 'index');
+            Route::get('/briefs/{id}/versions', 'get_brief_versions');
             Route::get('/brief-versions/{id}', 'show');
             Route::post('/brief-versions', 'store');
             Route::delete('/brief-versions/{id}', 'destroy');
+            Route::post('/brief-versions/{id}/restore', 'restore');
         });
 
         /* Problems Routes */
@@ -195,6 +221,7 @@ Route::middleware('auth:api')->group(function () {
             Route::post('/problems', 'store');
             Route::put('/problems/{id}', 'update');
             Route::delete('/problems/{id}', 'destroy');
+            Route::post('/problems/{id}/restore', 'restore');
         });
 
         /* Problem Test Cases Routes */
@@ -202,8 +229,8 @@ Route::middleware('auth:api')->group(function () {
             Route::get('/problem-test-cases', 'index');
             Route::get('/problem-test-cases/{id}', 'show');
             Route::post('/problem-test-cases', 'store');
-            Route::put('/problem-test-cases/{id}', 'update');
             Route::delete('/problem-test-cases/{id}', 'destroy');
+            Route::post('/problem-test-cases/{id}/restore', 'restore');
         });
 
         /* Sprint Routes */
@@ -225,6 +252,7 @@ Route::middleware('auth:api')->group(function () {
         /* Submission Routes */
         Route::controller(SubmissionController::class)->group(function () {
             Route::get('/submissions/student/{id}', 'get_student_submissions');
+            Route::get('/briefs/{brief_id}/students/{student_id}/submission', 'get_student_brief_submission');
         });
 
         /* Correction Routes */
@@ -232,14 +260,29 @@ Route::middleware('auth:api')->group(function () {
             Route::get('/corrections/students/{id}','get_student_corrections');
             Route::get('/corrections/{brief_id}/{student_id}', 'get_student_correction');
         });
+
+        /* Language Routes */
+        Route::controller(LanguageController::class)->group(function () {
+            Route::get('/languages', 'getAllLanguages');
+        });
+
+        /* Brief Skill Level Routes */
+        Route::controller(BriefSkillLevelController::class)->group(function () {
+            Route::get('/briefs/{id}/skill-levels', 'getBriefSkillLevelsByBriefId');
+        });
     });
 
     /* Student Routes */
     Route::prefix('student')->middleware('is_student')->group(function () {
+        /* Dashboard Routes */
+        Route::controller(StudentController::class)->group(function () {
+            Route::get('/dashboard', 'getDashboardData');
+        });
 
         /* Brief Routes */
         Route::controller(BriefController::class)->group(function () {
             Route::get('/briefs', 'get_student_briefs');
+            Route::get('/briefs/{id}', 'show');
         });
 
         /* Submission Routes */
