@@ -126,6 +126,23 @@ export const useSubmission = defineStore(
             }
         }
 
+        async function fetchStudentBriefSubmission(briefId: number, studentId: number): Promise<Submission | null> {
+            try {
+                const res = await api<ReturnData<{ submission: Submission }>>(`/teacher/briefs/${briefId}/students/${studentId}/submission`)
+                submission.value = res.data?.submission as Submission
+                return submission.value
+            } catch (err: any) {
+                submission.value = null
+                if (err.status !== 404) {
+                    toast.push({
+                        message: 'Something went wrong. Please try again.',
+                        type: 'error',
+                    })
+                }
+                return null
+            }
+        }
+
         return {
             submissions,
             submission,
@@ -133,6 +150,7 @@ export const useSubmission = defineStore(
             fetchStudentSubmissions,
             fetchSubmissionsByStudentId,
             fetchSubmission,
+            fetchStudentBriefSubmission,
             createSubmission
         }
     },
