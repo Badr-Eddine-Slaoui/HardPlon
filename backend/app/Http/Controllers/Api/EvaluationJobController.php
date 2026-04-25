@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\EvaluationJob;
 use Illuminate\Http\Request;
+use App\Mail\BriefSubmissionCorrected;
+use Illuminate\Support\Facades\Mail;
 
 class EvaluationJobController extends Controller
 
@@ -100,6 +102,29 @@ class EvaluationJobController extends Controller
             ]);
 
             if ($is_updated) {
+                if ($request->result !== null) {
+                    $job->load(['submission.student', 'submission.squad.squad_members.student', 'submission.brief']);
+                    if ($job->submission) {
+                        $briefTitle = $job->submission->brief->title ?? 'Bounty Board Mission';
+                        $actionUrl = env('FRONTEND_URL', 'http://localhost:3000') . "/student/submission?brief_id=" . $job->submission->brief_id;
+                        
+                        $students = [];
+                        if ($job->submission->student) {
+                            $students[] = $job->submission->student;
+                        } elseif ($job->submission->squad && $job->submission->squad->squad_members) {
+                            foreach ($job->submission->squad->squad_members as $member) {
+                                if ($member->student) {
+                                    $students[] = $member->student;
+                                }
+                            }
+                        }
+
+                        foreach ($students as $student) {
+                            Mail::to($student->email)->send(new BriefSubmissionCorrected($student->first_name, $briefTitle, $actionUrl));
+                        }
+                    }
+                }
+
                 return response()->json([
                     "success" => true,
                     "data" => compact('job'),
