@@ -15,9 +15,11 @@ export interface CorrectionDetail {
 export interface Correction {
     id: number;
     brief_id: number;
+    submission_id: number;
     student_id: number;
     teacher_id: number;
     message: string;
+    result: string;
     created_at: string;
     updated_at: string;
     deleted_at: string | null;
