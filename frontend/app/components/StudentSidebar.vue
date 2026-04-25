@@ -42,19 +42,18 @@ const submit = async () => {
                 <span class="material-symbols-outlined">dashboard</span>
                 <span class="font-medium">Command Center</span>
             </NuxtLink>
-            <NuxtLink :class="isActive('/student')" to="/student">
+            <NuxtLink :class="isActive('/student/briefs')" to="/student/briefs">
                 <span class="material-symbols-outlined fill-1">assignment</span>
                 <span class="font-medium">Bounty Board</span>
             </NuxtLink>
-            <NuxtLink :class="isActive('/student/submission', true)" to="/student/submission">
-                <span class="material-symbols-outlined fill-1">inventory_2</span>
-                <span class="font-medium">My Treasure</span>
+            <NuxtLink :class="isActive('/student/submission')" to="/student/submission">
+                <span class="material-symbols-outlined fill-1">grading</span>
+                <span class="font-medium">Mission Reviews</span>
             </NuxtLink>
-            <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-[#224249] transition-colors"
-                href="#">
-                <span class="material-symbols-outlined">group</span>
-                <span class="font-medium">My Crew</span>
-            </a>
+            <NuxtLink :class="isActive('/student/correction', true)" to="/student/correction">
+                <span class="material-symbols-outlined fill-1">emoji_events</span>
+                <span class="font-medium">Mission Rewards</span>
+            </NuxtLink>
             <form class="w-full" @submit.prevent="submit">
                 <button type="submit"
                     class="flex w-full items-center gap-3 px-4 py-3 rounded-lg text-red-500 bg-red-500/10 dark:text-red-400 hover:bg-slate-100 dark:hover:bg-[#224249] transition-colors">
