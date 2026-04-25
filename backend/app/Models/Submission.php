@@ -60,4 +60,9 @@ class Submission extends Model
     {
         return $this->hasOne(ProblemSubmissionJob::class);
     }
+
+    public function correction()
+    {
+        return $this->hasOne(Correction::class);
+    }
 }
