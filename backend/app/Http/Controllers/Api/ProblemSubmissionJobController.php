@@ -10,6 +10,8 @@ use App\Models\Problem;
 use App\Models\ProblemSubmissionJob;
 use App\Services\AI\FeedbackGenerator;
 use Illuminate\Http\Request;
+use App\Mail\BriefCorrectionIsReady;
+use Illuminate\Support\Facades\Mail;
 
 class ProblemSubmissionJobController extends Controller
 {
@@ -138,6 +140,7 @@ class ProblemSubmissionJobController extends Controller
                     'brief_id' => $job->submission->brief_id,
                     'student_id' => $job->submission->student_id,
                     'teacher_id' => $job->submission->brief->teacher_id,
+                    "submission_id" => $job->submission_id,
                     'message' => $aiMessage,
                     'result' => $brief_results
                 ]);
@@ -149,6 +152,28 @@ class ProblemSubmissionJobController extends Controller
                             'brief_skill_level_id' => $item['brief_skill_level_id'],
                             'grade' => $item['grade'],
                         ]);
+                    }
+
+                    $job->load(['submission.student', 'submission.squad.squad_members.student', 'submission.brief']);
+
+                    if ($job->submission) {
+                        $briefTitle = $job->submission->brief->title ?? 'Bounty Board Mission';
+                        $actionUrl = env('FRONTEND_URL', 'http://localhost:3000') . "/student/correction?brief_id=" . $job->submission->brief_id;
+
+                        $students = [];
+                        if ($job->submission->student) {
+                            $students[] = $job->submission->student;
+                        } elseif ($job->submission->squad && $job->submission->squad->squad_members) {
+                            foreach ($job->submission->squad->squad_members as $member) {
+                                if ($member->student) {
+                                    $students[] = $member->student;
+                                }
+                            }
+                        }
+
+                        foreach ($students as $student) {
+                            Mail::to($student->email)->send(new BriefCorrectionIsReady($student->first_name, $briefTitle, $actionUrl, $brief_results));
+                        }
                     }
 
                     return response()->json([
@@ -174,7 +199,7 @@ class ProblemSubmissionJobController extends Controller
             return response()->json([
                 "success" => false,
                 "data" => null,
-                "message" => "Something went wrong. Please try again.",
+                "message" => "Something went wrong. Please try again. : " . $e->getMessage(),
                 "code" => $e->getCode(),
             ], 500);
         }
