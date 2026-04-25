@@ -12,6 +12,7 @@ class Correction extends Model
     protected $table = "corrections";
     protected $fillable = [
         'brief_id',
+        'submission_id',
         'student_id',
         'teacher_id',
         'message',
@@ -44,5 +45,9 @@ class Correction extends Model
 
     public function correction_details(){
         return $this->hasMany(CorrectionDetail::class);
+    }
+
+    public function submission(){
+        return $this->belongsTo(Submission::class);
     }
 }
