@@ -14,6 +14,13 @@ class Stack extends Model
         'description',
     ];
 
+    protected $appends = ["is_active"];
+    
+    public function getIsActiveAttribute()
+    {
+        return !$this->trashed();
+    }
+
     protected static function booted()
     {
         static::deleted(function ($stack) {
