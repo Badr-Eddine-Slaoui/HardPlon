@@ -196,4 +196,46 @@ class ProblemTestCaseController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Restore the specified resource from storage.
+     */
+    public function restore(int $id)
+    {
+        try {
+            $problemTestCase = ProblemTestCase::onlyTrashed()->find($id);
+
+            if (!$problemTestCase) {
+                return response()->json([
+                    'success' => false,
+                    'data' => null,
+                    'message' => 'Problem test case not found in archives.'
+                ], 404);
+            }
+
+            $is_restored = $problemTestCase->restore();
+
+            if ($is_restored) {
+                return response()->json([
+                    'success' => true,
+                    'data' => compact('problemTestCase'),
+                    'message' => 'Problem test case restored successfully.'
+                ], 200);
+            }
+
+            return response()->json([
+                'success' => false,
+                'data' => null,
+                'message' => 'Failed to restore problem test case. Please try again.'
+            ], 400);
+
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'data' => null,
+                'message' => "Something went wrong. Please try again.",
+                'code' => $e->getCode(),
+            ], 500);
+        }
+    }
 }
