@@ -11,6 +11,8 @@
   },
   "dependencies": {
     "@vueup/vue-quill": "^1.2.0",
+    "dompurify": "^3.4.1",
+    "marked": "^18.0.2",
     "nuxt": "^4.3.0",
     "tom-select": "^2.4.6",
     "vue": "^3.5.27",
