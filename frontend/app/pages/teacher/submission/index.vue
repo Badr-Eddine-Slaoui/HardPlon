@@ -1,475 +1,749 @@
 <script setup lang="ts">
+    import { marked } from "marked";
+    import DOMPurify from "dompurify";
     import { useSubmission } from '~~/stores/submission';
     import { useCorrection } from '~~/stores/correction';
-    import type { Submission } from '~~/types/submission';
+    import { useBrief } from '~~/stores/brief';
     import { useClassGroup } from '~~/stores/class_group';
     import { useUser } from '~~/stores/user';
+    import type { Submission } from '~~/types/submission';
+    import type { Brief } from '~~/types/brief';
     import type { ClassGroup } from '~~/types/class_group';
     import type { User } from '~~/types/user';
-    import type { ReturnData } from '~~/types/api';
+    import type { Correction } from '~~/types/correction';
+import type { ArchitectureRule } from "~~/types/brief_version";
 
     useHead({
-        title: 'Student Dashboard - Bounty Board'
+        title: 'Mission Evaluation - Bounty Board'
     })
 
-    const classes = useClassGroup();
-    const users = useUser();
-    const store = useSubmission();
-    const correction = useCorrection();
+    const briefStore = useBrief();
+    const submissionStore = useSubmission();
+    const correctionStore = useCorrection();
+    const classGroupStore = useClassGroup();
+    const userStore = useUser();
 
-    const class_groups: Ref<ClassGroup[] | null> =  ref([])
-    const students: Ref<User[] | null> = ref(null)
+    const classGroups = ref<ClassGroup[]>([]);
+    const students = ref<User[]>([]);
+    const briefs = ref<Brief[]>([]);
 
-    const selected_class_group: Ref<number | null> = ref(null)
-    const selected_student: Ref<number | null> = ref(null)
-    const selected_submission: Ref<number | null> = ref(null)
-    const is_corrected: Ref<boolean> = ref(false)
+    const selectedClassGroupId = ref<number | null>(null);
+    const selectedStudentId = ref<number | null>(null);
+    const selectedBriefId = ref<number | null>(null);
 
-    const details: Ref<{ brief_skill_level_id: number, grade: string }[]> = ref([] as { brief_skill_level_id: number, grade: string }[])
+    const activeTab = ref<'brief' | 'submission' | 'correction'>('brief');
+    const loading = ref(false);
 
-    const is_all_grades_setted: Ref<boolean> = ref(false)
+    const currentBrief = computed(() => briefs.value.find(b => b.id === selectedBriefId.value));
+    const currentSubmission = ref<Submission | null>(null);
+    const currentCorrection = ref<Correction | null>(null);
+    const currentCorrectionMessage = ref<string | null>(null);
+    const visibleCodeProblemId = ref<number | null>(null);
 
-    const edit_mode: Ref<boolean> = ref(false)
-    
-    const set_edit_mode = () => {
-        edit_mode.value = true
-        form.brief_id = correction.correction?.brief_id as number
-        form.student_id = correction.correction?.student_id as number
-        form.message = correction.correction?.message as string
-        details.value = correction.correction?.correction_details?.map(detail => ({ brief_skill_level_id: detail.brief_skill_level_id, grade: detail.grade })) as { brief_skill_level_id: number, grade: string }[]
-        form.details = details.value
-        is_all_grades_setted.value = details.value?.every(d => d.grade != '')
-    }
-
-    const form = reactive({
-        brief_id: store.submission?.brief_id as number,
-        student_id: store.submission?.student_id as number,
-        message: '',
-        details: [] as { brief_skill_level_id: number, grade: string }[]
-    })
-
-    const errs = ref({
-        brief_id: '',
-        student_id: '',
-        message: '',
-        details: '',
-    })
-
-    const getClassGroupStudents = async (id: number) => {
-        selected_class_group.value = id
-        students.value = await users.fetchTeacherStudents(id)
-    }
-
-    const getStudentSubmissions = async (id: number) => {
-        selected_student.value = id
-        await store.fetchSubmissionsByStudentId(id)
-        await correction.fetchStudentCorrectionsById(id)
-    }
-
-    const getSubmission = async (id: number) => {
-        is_all_grades_setted.value = false
-        edit_mode.value = false
-        details.value = []
-        form.message = ''
-        form.details = []
-        await store.fetchSubmission(id)
-        await correction.fetchStudentCorrection(store.submission?.brief_id as number, store.submission?.student_id as number)
-        form.brief_id = store.submission?.brief_id as number
-        form.student_id = store.submission?.student_id as number
-        is_corrected.value = correction.correction ? true : false
-        if(!is_corrected.value){
-            details.value = store.submission?.brief?.brief_skill_levels?.map(b => ({ brief_skill_level_id: b.id, grade: '' })) as { brief_skill_level_id: number, grade: string }[]
+    const fetchInitialData = async () => {
+        loading.value = true;
+        classGroups.value = await classGroupStore.fetchTeacherClassGroups();
+        if (classGroups.value.length > 0) {
+            selectedClassGroupId.value = classGroups?.value[0]?.id as number;
+            await onClassGroupChange();
         }
-    }
+        loading.value = false;
+    };
 
-    const selectSubmission = (id: number)=>{
-        selected_submission.value = id
-        getSubmission(id)
-    }
-
-    const mountPage = async() => {
-        class_groups.value = await classes.fetchTeacherClassGroups();
-        if(!class_groups.value) return
-        await getClassGroupStudents(class_groups.value?.[0]?.id as number)
-        if(!students.value) return
-        await getStudentSubmissions(students.value?.[0]?.id as number)
-        if(!store.submissions) return
-        selectSubmission(store.submissions?.[0]?.id as number)
-    }
-
-    const addDetailGrade = (id: number, grade: string) => {
-        const detail = details.value?.find(d => d.brief_skill_level_id == id) as { brief_skill_level_id: number, grade: string }
-        detail.grade = grade
-        is_all_grades_setted.value = details.value?.every(d => d.grade != '')
-    }
-
-    onMounted(mountPage)
-
-    const submit = async () => {
-        form.details = details.value
-
-        let res : ReturnData<any>;
-
-        if(!edit_mode.value) {
-            res = await correction.createCorrection(form);
-        }else{
-            res = await correction.updateCorrection(correction.correction?.id as number, form);
-        }
-
-        if (res.success) {
-            edit_mode.value = false
-            is_corrected.value = false
-            details.value = []
-            form.message = ''
-            form.details = []
-            await mountPage()
-        }
+    const onClassGroupChange = async () => {
+        if (!selectedClassGroupId.value) return;
+        loading.value = true;
+        students.value = await userStore.fetchTeacherStudents(selectedClassGroupId.value) as User[];
+        briefs.value = await briefStore.fetchClassGroupBriefs(selectedClassGroupId.value) as Brief[];
         
-        if(res.errors) {
-            errs.value = res.errors
+        if (students.value.length > 0) {
+            selectedStudentId.value = students?.value[0]?.id as number;
+        } else {
+            selectedStudentId.value = null;
         }
-    }
+
+        if (briefs.value.length > 0) {
+            selectedBriefId.value = briefs?.value[0]?.id as number;
+            await onBriefOrStudentChange();
+        } else {
+            selectedBriefId.value = null;
+            currentSubmission.value = null;
+            currentCorrection.value = null;
+            currentCorrectionMessage.value = null;
+        }
+        loading.value = false;
+    };
+
+    const onBriefOrStudentChange = async () => {
+        if (!selectedBriefId.value || !selectedStudentId.value) return;
+        loading.value = true;
+        
+        currentSubmission.value = await submissionStore.fetchStudentBriefSubmission(selectedBriefId.value, selectedStudentId.value);
+        
+        await correctionStore.fetchStudentCorrection(selectedBriefId.value, selectedStudentId.value);
+        currentCorrection.value = correctionStore.correction;
+        currentCorrectionMessage.value = DOMPurify.sanitize(marked.parse(currentCorrection.value?.message ?? "") as string);
+
+        loading.value = false;
+    };
+
+    const selectBrief = async (id: number) => {
+        selectedBriefId.value = id;
+        await onBriefOrStudentChange();
+    };
+
+    const selectStudent = async (id: number) => {
+        selectedStudentId.value = id;
+        await onBriefOrStudentChange();
+    };
+
+    onMounted(fetchInitialData);
 
     definePageMeta({
         middleware: ['auth', 'teacher']
-    })
+    });
+
+    const getStatusColor = (status: string) => {
+        switch (status) {
+            case 'completed': return 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20';
+            case 'processing': return 'text-amber-500 bg-amber-500/10 border-amber-500/20';
+            case 'failed': return 'text-rose-500 bg-rose-500/10 border-rose-500/20';
+            default: return 'text-slate-500 bg-slate-500/10 border-slate-500/20';
+        }
+    };
+
+    const getGradeColor = (grade: string) => {
+        switch (grade) {
+            case 'EXCELLENT': return 'bg-emerald-500/20 text-emerald-500 border-emerald-500/30';
+            case 'AVERAGE': return 'bg-amber-500/20 text-amber-500 border-amber-500/30';
+            case 'POOR': return 'bg-rose-500/20 text-rose-500 border-rose-500/30';
+            default: return 'bg-slate-500/20 text-slate-500 border-slate-500/30';
+        }
+    };
 
 </script>
 
 <template>
     <NuxtLayout name="teacher">
-                <main class="flex-1 flex flex-row overflow-hidden">
-            <div
-                class="w-80 border-r border-slate-200 dark:border-[#224249] bg-white dark:bg-[#102023]/50 flex flex-col shrink-0">
-                <div class="p-4 border-b border-slate-200 dark:border-[#224249]">
-                    <h3 class="adventure-title text-lg font-bold">Assigned Briefs</h3>
-                    <p class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Roronoa Zoro's Log</p>
+        <main class="flex-1 flex flex-row overflow-hidden bg-[#0a1416]">
+            <!-- Sidebar: Navigation -->
+            <div class="w-85 border-r border-slate-800 bg-[#0d1b1e] flex flex-col shrink-0">
+                <div class="p-6 border-b border-slate-800 bg-[#0f1f23]">
+                    <h3 class="adventure-title text-xl font-bold text-pirate-gold">Marine Registry</h3>
+                    <p class="text-[10px] text-slate-500 uppercase tracking-widest font-black mt-1">Fleet & Crew Management</p>
                 </div>
-                <div class="mb-6 p-3">
-                    <p class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 px-3">Fleet Selection
-                    </p>
-                    <div class="space-y-1">
-                        <select v-if="class_groups" @change="getClassGroupStudents(parseInt(($event.target as HTMLSelectElement).value as string))"
-                            class="w-full bg-slate-50 dark:bg-background-dark border-slate-200 dark:border-[#224249] rounded-lg px-3 py-2 text-sm focus:ring-primary focus:border-primary">
-                            <option v-for="class_group in class_groups" :key="class_group.id" :value="class_group.id" :selected="class_group.id === selected_class_group" >{{ class_group.name }}</option>
+
+                <!-- Selectors -->
+                <div class="p-4 space-y-4">
+                    <div>
+                        <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 block px-1">Select Fleet (Class)</label>
+                        <select v-model="selectedClassGroupId" @change="onClassGroupChange"
+                            class="w-full bg-[#152a2e] border-slate-700 text-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-pirate-gold focus:border-pirate-gold transition-all">
+                            <option v-for="cg in classGroups" :key="cg.id" :value="cg.id">{{ cg.name }}</option>
                         </select>
-                        <select v-if="selected_class_group" @change="getStudentSubmissions(parseInt(($event.target as HTMLSelectElement).value as string))"
-                            class="w-full bg-slate-50 dark:bg-background-dark border-slate-200 dark:border-[#224249] rounded-lg px-3 py-2 text-sm focus:ring-primary focus:border-primary">
-                            <option v-for="student in students" :key="student.id" :value="student.id" :selected="student.id === selected_student" >{{ student.first_name }} {{ student.last_name }}</option>
+                    </div>
+
+                    <div>
+                        <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 block px-1">Select Crew Member (Student)</label>
+                        <select v-model="selectedStudentId" @change="onBriefOrStudentChange"
+                            class="w-full bg-[#152a2e] border-slate-700 text-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-pirate-gold focus:border-pirate-gold transition-all">
+                            <option v-for="student in students" :key="student.id" :value="student.id">{{ student.first_name }} {{ student.last_name }}</option>
                         </select>
                     </div>
                 </div>
-                <div class="flex-1 overflow-y-auto">
-                    <div class="divide-y divide-slate-100 dark:divide-[#224249]">
-                        <template v-if="store.submissions?.length as number > 0">
-                            <template v-for="submission in store.submissions" :key="submission.id">
-                                <div v-if="selected_submission === submission.id" class="p-4 bg-primary/5 border-l-4 border-primary cursor-pointer">
+
+                <!-- Briefs List -->
+                <div class="flex-1 overflow-y-auto custom-scrollbar">
+                    <div class="p-4 border-t border-slate-800">
+                        <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3 block px-1">Assigned Missions</label>
+                        <div class="space-y-2">
+                            <template v-if="briefs.length > 0">
+                                <button v-for="brief in briefs" :key="brief.id" 
+                                    @click="selectBrief(brief.id)"
+                                    :class="[
+                                        'w-full text-left p-4 rounded-2xl border transition-all group relative overflow-hidden',
+                                        selectedBriefId === brief.id 
+                                            ? 'bg-pirate-gold/10 border-pirate-gold/30 ring-1 ring-pirate-gold/20' 
+                                            : 'bg-[#152a2e]/50 border-slate-800 hover:border-slate-600 hover:bg-[#1a3439]'
+                                    ]">
                                     <div class="flex justify-between items-start mb-1">
-                                        <h3 class="text-sm font-bold adventure-title text-primary truncate">{{ submission.brief.title }}</h3>
-                                        <span class="text-[10px] text-slate-400">{{ submission.created_at }}</span>
+                                        <h4 :class="['text-sm font-bold adventure-title truncate pr-2', selectedBriefId === brief.id ? 'text-pirate-gold' : 'text-slate-300 group-hover:text-white']">
+                                            {{ brief.title }}
+                                        </h4>
                                     </div>
-                                    <p class="text-xs text-slate-500 dark:text-slate-400 line-clamp-1 mb-2">{{ submission.brief.description }}</p>
-                                    <span v-if="correction?.corrections?.find(c => c.brief_id === submission.brief_id) === undefined"
-                                            class="px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-500 text-[10px] font-black uppercase tracking-wider">Not Corrected</span>
-                                    <span v-else
-                                        class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-500 text-[10px] font-black uppercase tracking-wider">Corrected</span>
-                                </div>
-                                <div v-else @click="selectSubmission(submission.id)"
-                                    class="p-4 hover:bg-slate-100 dark:hover:bg-[#182f34] cursor-pointer transition-colors group">
-                                    <div class="flex justify-between items-start mb-1">
-                                        <h3 class="text-sm font-bold adventure-title group-hover:text-primary truncate">{{ submission.brief.title }}</h3>
-                                        <span class="text-[10px] text-slate-400">{{ submission.created_at }}</span>
+                                    <p class="text-[11px] text-slate-500 line-clamp-1 mb-2">{{ brief.description }}</p>
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-[9px] font-black uppercase tracking-tighter bg-slate-800 text-slate-400 px-2 py-0.5 rounded border border-slate-700">
+                                            {{ brief.stack?.name }}
+                                        </span>
                                     </div>
-                                    <p class="text-xs text-slate-500 dark:text-slate-400 line-clamp-1 mb-2">{{ submission.brief.description }}</p>
-                                    <span v-if="correction?.corrections?.find(c => c.brief_id === submission.brief_id) === undefined"
-                                            class="px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-500 text-[10px] font-black uppercase tracking-wider">Not Corrected</span>
-                                    <span v-else
-                                        class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-500 text-[10px] font-black uppercase tracking-wider">Corrected</span>
-                                </div>
+                                </button>
                             </template>
-                        </template>
-                        <template v-else>
-                            <div
-                                class="col-start-2 bg-white dark:bg-[#1a2e33] border border-slate-200 dark:border-[#224249] p-6 m-3 rounded-2xl h-[30vh]">
-                                <div class="space-y-4 flex flex-col justify-center items-center gap-y-5 h-full">
-                                    <div
-                                        class="size-12 mx-auto rounded-xl bg-red-500/10 flex items-center justify-center text-red-500">
-                                        <span class="material-symbols-outlined">info</span>
-                                    </div>
-                                    <div class="text-center">
-                                        <h3 class="font-bold text-lg">No Submissions Found</h3>
-                                        <p class="text-sm text-slate-500 dark:text-[#90c1cb]">Select a student to view their submissions</p>
-                                    </div>
-                                </div>
+                            <div v-else class="p-8 text-center bg-[#152a2e]/20 rounded-2xl border border-dashed border-slate-800">
+                                <span class="material-symbols-outlined text-slate-700 text-4xl mb-2">anchor</span>
+                                <p class="text-xs text-slate-600 font-bold uppercase tracking-widest">No Missions Found</p>
                             </div>
-                        </template>
+                        </div>
                     </div>
                 </div>
             </div>
-            <form v-if="selected_submission" @submit.prevent="submit" class="flex-1 flex flex-col overflow-y-auto">
-                <header
-                    class="h-16 border-b border-slate-200 dark:border-[#224249] bg-white/80 dark:bg-background-dark/80 backdrop-blur-md flex items-center justify-between px-8 sticky top-0 z-10 shrink-0">
-                    <div class="flex items-center gap-4">
-                        <h2 class="text-2xl font-bold tracking-tight adventure-title text-primary">Mission Correction
-                        </h2>
-                    </div>
-                    <div class="flex items-center gap-3">
-                        <template v-if="!is_corrected">
-                            <button v-if="is_all_grades_setted" type="submit"
-                                class="bg-pirate-gold hover:bg-pirate-gold-dark text-background-dark px-6 py-2 rounded-lg font-black text-xs uppercase tracking-widest transition-all shadow-[0_4px_10px_rgba(212,175,55,0.3)] hover:shadow-[0_4px_20px_rgba(212,175,55,0.5)] flex items-center gap-2 border border-pirate-gold-dark/30">
-                                <span class="material-symbols-outlined text-sm">workspace_premium</span>
-                                Publish Bounty
-                            </button>
-                        </template>
-                        <template v-else>
-                            <button v-if="!edit_mode"  type="button" @click="set_edit_mode()"
-                                class="bg-pirate-gold hover:bg-pirate-gold-dark text-background-dark px-6 py-2 rounded-lg font-black text-xs uppercase tracking-widest transition-all shadow-[0_4px_10px_rgba(212,175,55,0.3)] hover:shadow-[0_4px_20px_rgba(212,175,55,0.5)] flex items-center gap-2 border border-pirate-gold-dark/30">
-                                <span class="material-symbols-outlined text-sm">workspace_premium</span>
-                                Edit Bounty
-                            </button>
-                            <template v-else>
-                                <button v-if="is_all_grades_setted"  type="submit"
-                                    class="bg-pirate-gold hover:bg-pirate-gold-dark text-background-dark px-6 py-2 rounded-lg font-black text-xs uppercase tracking-widest transition-all shadow-[0_4px_10px_rgba(212,175,55,0.3)] hover:shadow-[0_4px_20px_rgba(212,175,55,0.5)] flex items-center gap-2 border border-pirate-gold-dark/30">
-                                    <span class="material-symbols-outlined text-sm">workspace_premium</span>
-                                    Update Bounty
-                                </button>
-                            </template>
-                        </template>
-                    </div>
-                </header>
-                <div class="p-8 space-y-8 max-w-5xl mx-auto w-full">
-                    <section class="space-y-4">
-                        <div class="flex items-center gap-4">
-                            <div
-                                class="size-12 rounded-xl bg-slate-100 dark:bg-[#182f34] border border-slate-200 dark:border-[#224249] flex items-center justify-center">
-                                <span class="material-symbols-outlined text-primary text-2xl">description</span>
-                            </div>
-                            <div>
-                                <h3 class="text-xl font-bold adventure-title">{{ store.submission?.brief.title }}</h3>
-                                <p class="text-sm text-slate-500">Submitted by <span
-                                        class="text-primary font-bold">{{ store.submission?.student.first_name }} {{ store.submission?.student.last_name }}</span> on {{ (new Date(store.submission?.created_at as string)).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' } ) }}</p>
+
+            <!-- Main Content Area -->
+            <div class="flex-1 flex flex-col min-w-0 bg-[#0a1416] relative overflow-hidden">
+                <div v-if="selectedBriefId && currentBrief" class="h-full flex flex-col">
+                    <!-- Loading Overlay -->
+                    <div v-if="loading" class="absolute inset-0 bg-[#0a1416]/60 backdrop-blur-sm z-50 flex flex-col items-center justify-center">
+                        <div class="relative">
+                            <div class="size-16 border-4 border-pirate-gold/20 border-t-pirate-gold rounded-full animate-spin"></div>
+                            <div class="absolute inset-0 flex items-center justify-center">
+                                <span class="material-symbols-outlined text-pirate-gold animate-pulse">anchor</span>
                             </div>
                         </div>
-                        <div
-                            class="bg-white dark:bg-[#182f34] border border-slate-200 dark:border-[#224249] rounded-xl p-6 parchment-effect shadow-sm">
-                            <div class="prose prose-sm dark:prose-invert max-w-none">
-                                <p class="text-slate-600 dark:text-slate-300 mb-4 italic leading-relaxed">
-                                    "{{ store.submission?.message }}"
+                        <p class="mt-4 text-xs font-black text-pirate-gold uppercase tracking-[0.3em] animate-pulse">Navigating Waters...</p>
+                    </div>
+
+                    <!-- Header with Tabs -->
+                    <header class="h-20 bg-[#0f1f23]/80 backdrop-blur-md border-b border-slate-800 px-8 flex items-center justify-between shrink-0 z-20">
+                        <div class="flex items-center gap-6">
+                            <div class="flex flex-col">
+                                <h2 class="text-2xl font-bold adventure-title text-pirate-gold leading-none">{{ currentBrief.title }}</h2>
+                                <p class="text-[10px] text-slate-500 font-black uppercase tracking-widest mt-1">
+                                    Evaluating: <span class="text-slate-300">{{ students.find(s => s.id === selectedStudentId)?.first_name }} {{ students.find(s => s.id === selectedStudentId)?.last_name }}</span>
                                 </p>
-                                <div class="flex flex-wrap gap-4 pt-4 border-t border-slate-100 dark:border-[#224249]">
-                                    <NuxtLink v-for="link in store.submission?.links" target="_blank" class="flex items-center gap-2 text-xs font-bold text-primary bg-primary/5 px-3 py-2 rounded-lg border border-primary/20 hover:bg-primary/10 transition-colors"
-                                        :to="link[Object.keys(link)[0] as string]">
-                                        <span class="material-symbols-outlined text-sm">link</span>
-                                        {{ Object.keys(link)[0] }}
-                                    </NuxtLink>
+                            </div>
+                        </div>
+
+                        <!-- Tab Buttons -->
+                        <div class="flex bg-[#0a1416] p-1 rounded-xl border border-slate-800 shadow-inner">
+                            <button @click="activeTab = 'brief'" 
+                                :class="['px-6 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2', 
+                                activeTab === 'brief' ? 'bg-pirate-gold text-background-dark shadow-lg' : 'text-slate-500 hover:text-slate-300']">
+                                <span class="material-symbols-outlined text-sm">article</span>
+                                Brief
+                            </button>
+                            <button @click="activeTab = 'submission'" 
+                                :class="['px-6 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2', 
+                                activeTab === 'submission' ? 'bg-pirate-gold text-background-dark shadow-lg' : 'text-slate-500 hover:text-slate-300']">
+                                <span class="material-symbols-outlined text-sm">package_2</span>
+                                Submission
+                            </button>
+                            <button @click="activeTab = 'correction'" 
+                                :class="['px-6 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2', 
+                                activeTab === 'correction' ? 'bg-pirate-gold text-background-dark shadow-lg' : 'text-slate-500 hover:text-slate-300']">
+                                <span class="material-symbols-outlined text-sm">workspace_premium</span>
+                                Correction
+                            </button>
+                        </div>
+                    </header>
+
+                    <!-- Scrollable Content -->
+                    <div class="flex-1 overflow-y-auto custom-scrollbar p-8">
+                        <div class="max-w-5xl mx-auto space-y-8 pb-12">
+                            
+                            <!-- TAB 1: BRIEF DETAILS -->
+                            <div v-if="activeTab === 'brief'" class="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                <!-- Top Info Cards -->
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                    <div class="bg-[#0f1f23] border border-slate-800 rounded-2xl p-6 parchment-effect relative group hover:border-pirate-gold/30 transition-all">
+                                        <div class="size-10 rounded-xl bg-pirate-gold/10 flex items-center justify-center text-pirate-gold mb-4 group-hover:scale-110 transition-transform">
+                                            <span class="material-symbols-outlined">terminal</span>
+                                        </div>
+                                        <h4 class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Tech Stack</h4>
+                                        <p class="text-lg font-bold text-slate-200">{{ currentBrief.stack?.name || 'N/A' }}</p>
+                                    </div>
+                                    <div class="bg-[#0f1f23] border border-slate-800 rounded-2xl p-6 parchment-effect relative group hover:border-pirate-gold/30 transition-all">
+                                        <div class="size-10 rounded-xl bg-pirate-gold/10 flex items-center justify-center text-pirate-gold mb-4 group-hover:scale-110 transition-transform">
+                                            <span class="material-symbols-outlined">trending_up</span>
+                                        </div>
+                                        <h4 class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Skill Targets</h4>
+                                        <p class="text-lg font-bold text-slate-200">{{ currentBrief.brief_skill_levels?.length || 0 }} Ranks</p>
+                                    </div>
+                                    <div class="bg-[#0f1f23] border border-slate-800 rounded-2xl p-6 parchment-effect relative group hover:border-pirate-gold/30 transition-all">
+                                        <div class="size-10 rounded-xl bg-pirate-gold/10 flex items-center justify-center text-pirate-gold mb-4 group-hover:scale-110 transition-transform">
+                                            <span class="material-symbols-outlined">extension</span>
+                                        </div>
+                                        <h4 class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Challenges</h4>
+                                        <p class="text-lg font-bold text-slate-200">{{ currentBrief.problems?.length || 0 }} Problems</p>
+                                    </div>
+                                </div>
+
+                                <!-- Skills & Levels -->
+                                <section>
+                                    <h3 class="text-sm font-black text-pirate-gold uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                                        <span class="h-px w-8 bg-pirate-gold/30"></span>
+                                        Required Skill Proficiency
+                                    </h3>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div v-for="bsl in currentBrief.brief_skill_levels" :key="bsl.id" 
+                                            class="bg-[#152a2e]/40 border border-slate-800/50 rounded-xl p-4 flex items-center justify-between group hover:bg-[#1a3439]/60 transition-colors">
+                                            <div class="flex items-center gap-3">
+                                                <div class="size-8 rounded-lg bg-slate-800 flex items-center justify-center text-[10px] font-black text-pirate-gold group-hover:bg-pirate-gold group-hover:text-background-dark transition-all">
+                                                    {{ bsl.skill?.code }}
+                                                </div>
+                                                <div>
+                                                    <h5 class="text-sm font-bold text-slate-200">{{ bsl.skill?.title }}</h5>
+                                                    <p class="text-[10px] text-slate-500 font-bold uppercase">{{ bsl.level?.name }} (Rank {{ bsl.level?.order }})</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </section>
+
+                                <!-- Architecture Rules -->
+                                <section v-if="currentBrief.brief_versions?.[0]?.architecture_rules">
+                                    <h3 class="text-sm font-black text-pirate-gold uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                                        <span class="h-px w-8 bg-pirate-gold/30"></span>
+                                        Marine Architecture Standards
+                                    </h3>
+                                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                        <!-- Required -->
+                                        <div v-if="(currentBrief.brief_versions[0].architecture_rules as ArchitectureRule).required?.length" class="bg-[#152a2e]/20 border border-slate-800 rounded-2xl p-6 parchment-effect">
+                                            <h5 class="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                                <span class="material-symbols-outlined text-sm">check_circle</span> Required Files
+                                            </h5>
+                                            <ul class="space-y-2">
+                                                <li v-for="rule in (currentBrief.brief_versions[0].architecture_rules as ArchitectureRule).required" :key="rule"
+                                                    class="text-xs text-slate-400 font-medium flex items-center gap-2">
+                                                    <span class="size-1 bg-emerald-500/40 rounded-full"></span> {{ rule }}
+                                                </li>
+                                            </ul>
+                                        </div>
+                                        <!-- Forbidden -->
+                                        <div v-if="(currentBrief.brief_versions[0].architecture_rules as ArchitectureRule).forbidden?.length" class="bg-[#152a2e]/20 border border-slate-800 rounded-2xl p-6 parchment-effect">
+                                            <h5 class="text-[10px] font-black text-rose-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                                <span class="material-symbols-outlined text-sm">block</span> Forbidden Items
+                                            </h5>
+                                            <ul class="space-y-2">
+                                                <li v-for="rule in (currentBrief.brief_versions[0].architecture_rules as ArchitectureRule).forbidden" :key="rule"
+                                                    class="text-xs text-slate-400 font-medium flex items-center gap-2">
+                                                    <span class="size-1 bg-rose-500/40 rounded-full"></span> {{ rule }}
+                                                </li>
+                                            </ul>
+                                        </div>
+                                        <!-- Structure -->
+                                        <div v-if="(currentBrief.brief_versions[0].architecture_rules as ArchitectureRule).structure" class="bg-[#152a2e]/20 border border-slate-800 rounded-2xl p-6 parchment-effect">
+                                            <h5 class="text-[10px] font-black text-pirate-gold uppercase tracking-widest mb-4 flex items-center gap-2">
+                                                <span class="material-symbols-outlined text-sm">account_tree</span> Layout Schema
+                                            </h5>
+                                            <ul class="space-y-2">
+                                                <li v-for="(type, path) in (currentBrief.brief_versions[0].architecture_rules as ArchitectureRule).structure" :key="path"
+                                                    class="text-xs text-slate-400 font-medium flex items-center justify-between">
+                                                    <span>{{ path }}</span>
+                                                    <span class="text-[8px] font-black bg-slate-800 px-1.5 py-0.5 rounded uppercase">{{ type }}</span>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </section>
+
+                                <!-- Problems & Test Cases -->
+                                <section>
+                                    <h3 class="text-sm font-black text-pirate-gold uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                                        <span class="h-px w-8 bg-pirate-gold/30"></span>
+                                        Marine Challenges (Problems)
+                                    </h3>
+                                    <div class="space-y-4">
+                                        <div v-for="problem in currentBrief.problems" :key="problem.id"
+                                            class="bg-[#0f1f23] border border-slate-800 rounded-2xl overflow-hidden group hover:border-pirate-gold/20 transition-all">
+                                            <div class="p-6 border-b border-slate-800/50 flex justify-between items-start">
+                                                <div>
+                                                    <div class="flex items-center gap-3 mb-1">
+                                                        <h4 class="text-lg font-bold text-slate-200 adventure-title">{{ problem.title }}</h4>
+                                                        <span class="text-[10px] font-black bg-[#1a3439] text-pirate-gold px-2 py-0.5 rounded border border-pirate-gold/20">
+                                                            {{ problem.language?.name }}
+                                                        </span>
+                                                    </div>
+                                                    <p class="text-sm text-slate-500">{{ problem.description }}</p>
+                                                </div>
+                                            </div>
+                                            <!-- Test Cases -->
+                                            <div class="p-4 bg-[#0a1416]/50">
+                                                <p class="text-[9px] font-black text-slate-600 uppercase tracking-widest mb-3 px-2">Verification Protocols (Test Cases)</p>
+                                                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                                    <div v-for="tc in problem.test_cases" :key="tc.id"
+                                                        class="bg-[#152a2e]/40 border border-slate-800 rounded-xl p-3 flex flex-col gap-1">
+                                                        <div class="flex justify-between items-center mb-1">
+                                                            <span class="text-[9px] font-black text-slate-500 uppercase">Input Sample</span>
+                                                            <span v-if="!tc.is_hidden" class="text-[8px] font-black bg-emerald-500/10 text-emerald-500 px-1.5 py-0.5 rounded border border-emerald-500/20">PUBLIC</span>
+                                                            <span v-else class="text-[8px] font-black bg-slate-800 text-slate-500 px-1.5 py-0.5 rounded border border-slate-700">HIDDEN</span>
+                                                        </div>
+                                                        <code class="text-[11px] text-slate-300 font-mono bg-black/30 p-2 rounded block truncate">{{ tc.input }}</code>
+                                                        <span class="text-[9px] font-black text-slate-500 uppercase mt-1">Expected Output</span>
+                                                        <code class="text-[11px] text-pirate-gold font-mono bg-black/30 p-2 rounded block truncate">{{ tc.expected_output }}</code>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </section>
+                            </div>
+
+                            <!-- TAB 2: SUBMISSION -->
+                            <div v-if="activeTab === 'submission'" class="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                <div v-if="currentSubmission" class="space-y-8">
+                                    <!-- Main Submission Info -->
+                                    <div class="bg-[#0f1f23] border border-slate-800 rounded-2xl p-8 parchment-effect relative overflow-hidden shadow-2xl">
+                                        <div class="absolute top-0 right-0 p-8 opacity-10">
+                                            <span class="material-symbols-outlined text-8xl text-pirate-gold">anchor</span>
+                                        </div>
+                                        
+                                        <div class="relative z-10 space-y-6">
+                                            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800/50 pb-6">
+                                                <div class="flex items-center gap-4">
+                                                    <div class="size-16 rounded-2xl bg-pirate-gold/10 border border-pirate-gold/20 flex items-center justify-center text-pirate-gold shadow-[0_0_20px_rgba(212,175,55,0.1)]">
+                                                        <span class="material-symbols-outlined text-4xl">inventory_2</span>
+                                                    </div>
+                                                    <div>
+                                                        <h3 class="text-2xl font-bold adventure-title text-slate-100">Project Payload</h3>
+                                                        <p class="text-xs text-slate-500 font-bold uppercase tracking-widest mt-1">Submitted on {{ new Date(currentSubmission.created_at).toLocaleDateString() }}</p>
+                                                    </div>
+                                                </div>
+                                                <NuxtLink :to="currentSubmission.link" target="_blank"
+                                                    class="bg-pirate-gold hover:bg-pirate-gold-dark text-background-dark px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all flex items-center gap-2 group">
+                                                    <span class="material-symbols-outlined text-sm group-hover:rotate-45 transition-transform">open_in_new</span>
+                                                    Access Repository
+                                                </NuxtLink>
+                                            </div>
+
+                                            <!-- System Evaluation Summary -->
+                                            <div v-if="currentSubmission.evaluation_job?.result" class="space-y-6">
+                                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    <div class="bg-black/20 rounded-xl p-4 border border-slate-800/50">
+                                                        <div class="flex items-center justify-between mb-2">
+                                                            <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest">Architecture Score</span>
+                                                            <span :class="['text-xs font-black', currentSubmission.evaluation_job.result.architecture.score === 10 ? 'text-emerald-500' : 'text-amber-500']">
+                                                                {{ currentSubmission.evaluation_job.result.architecture.score }}/10
+                                                            </span>
+                                                        </div>
+                                                        <div class="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
+                                                            <div class="h-full bg-pirate-gold transition-all duration-1000" :style="{ width: `${currentSubmission.evaluation_job.result.architecture.score * 10}%` }"></div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="bg-black/20 rounded-xl p-4 border border-slate-800/50">
+                                                        <div class="flex items-center justify-between mb-2">
+                                                            <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest">HTTP Tests Score</span>
+                                                            <span :class="['text-xs font-black', currentSubmission.evaluation_job.result.tests.score === 10 ? 'text-emerald-500' : 'text-amber-500']">
+                                                                {{ currentSubmission.evaluation_job.result.tests.score }}/10
+                                                            </span>
+                                                        </div>
+                                                        <div class="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
+                                                            <div class="h-full bg-pirate-gold transition-all duration-1000" :style="{ width: `${currentSubmission.evaluation_job.result.tests.score * 10}%` }"></div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <!-- Detailed Analysis -->
+                                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                    <!-- Architecture Details -->
+                                                    <div class="space-y-3">
+                                                        <h4 class="text-[9px] font-black text-slate-500 uppercase tracking-widest">Architectural Integrity</h4>
+                                                        <div class="space-y-2">
+                                                            <div v-if="currentSubmission.evaluation_job.result.architecture.missing.length === 0 && currentSubmission.evaluation_job.result.architecture.forbidden.length === 0" 
+                                                                class="flex items-center gap-2 text-xs text-emerald-500 font-medium">
+                                                                <span class="material-symbols-outlined text-sm">verified</span>
+                                                                Structure Verified
+                                                            </div>
+                                                            <div v-for="miss in currentSubmission.evaluation_job.result.architecture.missing" :key="miss"
+                                                                class="flex items-center gap-2 text-[10px] text-rose-500 bg-rose-500/5 px-2 py-1 rounded border border-rose-500/10">
+                                                                <span class="material-symbols-outlined text-xs">close</span>
+                                                                Missing: {{ miss }}
+                                                            </div>
+                                                            <div v-for="forbid in currentSubmission.evaluation_job.result.architecture.forbidden" :key="forbid"
+                                                                class="flex items-center gap-2 text-[10px] text-rose-500 bg-rose-500/5 px-2 py-1 rounded border border-rose-500/10">
+                                                                <span class="material-symbols-outlined text-xs">block</span>
+                                                                Forbidden: {{ forbid }}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- Test Details -->
+                                                    <div class="space-y-3">
+                                                        <h4 class="text-[9px] font-black text-slate-500 uppercase tracking-widest">Protocol Validation</h4>
+                                                        <div class="space-y-2">
+                                                            <div v-for="test in currentSubmission.evaluation_job.result.tests.tests" :key="test.name"
+                                                                class="flex items-center justify-between text-[10px] bg-slate-900/50 px-3 py-1.5 rounded-lg border border-slate-800/50">
+                                                                <div class="flex items-center gap-2">
+                                                                    <span :class="['material-symbols-outlined text-xs', test.passed ? 'text-emerald-500' : 'text-rose-500']">
+                                                                        {{ test.passed ? 'check_circle' : 'error' }}
+                                                                    </span>
+                                                                    <span class="text-slate-300 font-medium">{{ test.name }}</span>
+                                                                </div>
+                                                                <span class="text-slate-500 font-black">HTTP {{ test.status }}</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="space-y-3">
+                                                <h4 class="text-[10px] font-black text-pirate-gold uppercase tracking-[0.2em]">Crew Message</h4>
+                                                <div class="bg-black/20 rounded-xl p-6 border border-slate-800 shadow-inner">
+                                                    <p class="text-slate-300 italic leading-relaxed">"{{ currentSubmission.message }}"</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Code Problems Status -->
+                                    <section>
+                                        <div class="flex items-center justify-between mb-4">
+                                            <h3 class="text-sm font-black text-pirate-gold uppercase tracking-[0.2em] flex items-center gap-2">
+                                                <span class="h-px w-8 bg-pirate-gold/30"></span>
+                                                Logical Fragments (Problem Submissions)
+                                            </h3>
+                                            <div v-if="currentSubmission.problem_submission_job" 
+                                                :class="['px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border', getStatusColor(currentSubmission.problem_submission_job.status)]">
+                                                Job: {{ currentSubmission.problem_submission_job.status }}
+                                            </div>
+                                        </div>
+
+                                        <div v-if="currentSubmission.problem_submissions?.length as number > 0" class="grid grid-cols-1 gap-4">
+                                            <div v-for="(ps, index) in currentSubmission.problem_submissions" :key="ps.id"
+                                                class="bg-[#0f1f23] border border-slate-800 rounded-2xl overflow-hidden group">
+                                                <div class="p-6">
+                                                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                                        <div class="flex items-center gap-4">
+                                                            <div :class="['size-12 rounded-xl flex items-center justify-center border transition-all', 
+                                                                currentSubmission.problem_submission_job?.status === 'completed' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500' : 
+                                                                currentSubmission.problem_submission_job?.status === 'failed' ? 'bg-rose-500/10 border-rose-500/20 text-rose-500' : 
+                                                                'bg-slate-800 border-slate-700 text-slate-500']">
+                                                                <span class="material-symbols-outlined">
+                                                                    {{ currentSubmission.problem_submission_job?.status === 'completed' ? 'check_circle' : 
+                                                                       currentSubmission.problem_submission_job?.status === 'failed' ? 'error' : 
+                                                                       currentSubmission.problem_submission_job?.status === 'running' ? 'sync' : 'hourglass_empty' }}
+                                                                </span>
+                                                            </div>
+                                                            <div>
+                                                                <div class="flex items-center gap-2">
+                                                                    <h4 class="font-bold text-slate-200">{{ ps.problem?.title }}</h4>
+                                                                    <span class="text-[9px] font-black bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded border border-slate-700">
+                                                                        {{ ps.problem?.language?.name }}
+                                                                    </span>
+                                                                </div>
+                                                                <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">Status: {{ currentSubmission.problem_submission_job?.status || 'Pending' }}</p>
+                                                            </div>
+                                                        </div>
+
+                                                        <div class="flex items-center gap-3">
+                                                            <div v-if="currentSubmission?.problem_submission_job?.result" class="text-right">
+                                                                <p class="text-[10px] font-black text-slate-500 uppercase tracking-tighter">Test Success Rate</p>
+                                                                <p :class="['text-lg font-black', currentSubmission?.problem_submission_job?.result?.submissions[index]?.score === 10 ? 'text-emerald-500' : 'text-amber-500']">
+                                                                    {{ currentSubmission?.problem_submission_job?.result?.submissions[index]?.score as number }} / 10
+                                                                </p>
+                                                            </div>
+                                                            <button 
+                                                                @click="visibleCodeProblemId = visibleCodeProblemId === ps.id ? null : ps.id"
+                                                                :class="['p-2 rounded-lg transition-all border', visibleCodeProblemId === ps.id ? 'bg-pirate-gold text-background-dark border-pirate-gold' : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700']">
+                                                                <span class="material-symbols-outlined text-sm">{{ visibleCodeProblemId === ps.id ? 'visibility_off' : 'code' }}</span>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- Student Code Viewer -->
+                                                    <transition enter-active-class="transition duration-300 ease-out" enter-from-class="transform scale-95 opacity-0" enter-to-class="transform scale-100 opacity-100" leave-active-class="transition duration-200 ease-in" leave-from-class="transform scale-100 opacity-100" leave-to-class="transform scale-95 opacity-0">
+                                                        <div v-if="visibleCodeProblemId === ps.id" class="mt-6 border-t border-slate-800 pt-6">
+                                                            <div class="flex items-center justify-between mb-3 px-2">
+                                                                <h5 class="text-[9px] font-black text-pirate-gold uppercase tracking-widest">Student Payload Source</h5>
+                                                                <span class="text-[8px] font-mono text-slate-600">{{ ps.problem?.language?.name }} Environment</span>
+                                                            </div>
+                                                            <div class="bg-black/60 rounded-2xl p-6 font-mono text-[11px] overflow-x-auto text-slate-300 border border-slate-800/50 shadow-inner custom-scrollbar relative">
+                                                                <div class="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
+                                                                    <span class="material-symbols-outlined text-4xl">code</span>
+                                                                </div>
+                                                                <pre class="leading-relaxed"><code>{{ ps.code }}</code></pre>
+                                                            </div>
+                                                        </div>
+                                                    </transition>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div v-else class="h-[40vh] flex flex-col items-center justify-center bg-[#0f1f23]/30 rounded-3xl border border-dashed border-slate-800">
+                                            <div class="size-20 rounded-full bg-slate-800/50 flex items-center justify-center text-slate-600 mb-6">
+                                                <span class="material-symbols-outlined text-5xl">person_off</span>
+                                            </div>
+                                            <h3 class="text-xl font-bold adventure-title text-slate-500 mb-2">No Submission Found</h3>
+                                            <p class="text-slate-500">The student has not submitted any solutions for this brief yet.</p>
+                                        </div>
+                                    </section>
+                                </div>
+                                <div v-else class="h-[40vh] flex flex-col items-center justify-center bg-[#0f1f23]/30 rounded-3xl border border-dashed border-slate-800">
+                                    <div class="size-20 rounded-full bg-slate-800/50 flex items-center justify-center text-slate-600 mb-6">
+                                        <span class="material-symbols-outlined text-5xl">person_off</span>
+                                    </div>
+                                    <h3 class="text-xl font-bold adventure-title text-slate-500 mb-2">No Submission Found</h3>
+                                    <p class="text-sm text-slate-600 font-medium">The student has not reported completion of this mission yet.</p>
                                 </div>
                             </div>
-                        </div>
-                    </section>
-                    <section v-if="!is_corrected" class="space-y-6 pb-12">
-                        <div class="flex items-center gap-2 text-pirate-gold">
-                            <span class="material-symbols-outlined">edit_square</span>
-                            <h3 class="text-lg font-bold adventure-title uppercase tracking-widest">Captain's Assessment
-                            </h3>
-                        </div>
-                        <div class="space-y-8">
-                            <div class="space-y-2">
-                                <label class="text-xs font-black uppercase tracking-widest text-slate-400">Captain's
-                                    Message</label>
-                                <textarea v-model="form.message"
-                                    class="w-full bg-white dark:bg-[#182f34] border-slate-200 dark:border-[#224249] rounded-xl p-4 text-sm focus:ring-primary focus:border-primary placeholder:italic parchment-effect"
-                                    placeholder="Write your feedback to the crew member..." rows="4"></textarea>
-                                <p v-if="errs.message" class="text-red-500 text-xs mt-1">{{ errs.message }}</p>
-                            </div>
-                            <div class="space-y-4">
-                                <label class="text-xs font-black uppercase tracking-widest text-slate-400">Skill
-                                    Proficiency Evaluation</label>
-                                <div class="space-y-3">
-                                    <div v-for="brief_skill_level in store.submission?.brief?.brief_skill_levels"
-                                        class="bg-white dark:bg-[#182f34] border border-slate-200 dark:border-[#224249] rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                                        <div>
-                                            <h4 class="font-bold text-sm tracking-wide">{{ brief_skill_level?.skill?.code }}: {{ brief_skill_level?.skill?.title }}</h4>
-                                            <p class="text-[10px] text-slate-500 uppercase font-bold">Target: Level {{ brief_skill_level?.level?.order }}
-                                                ({{ brief_skill_level?.level?.name }})</p>
+
+                            <!-- TAB 3: CORRECTION -->
+                            <div v-if="activeTab === 'correction'" class="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                <div v-if="currentCorrection" class="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                                    <!-- Summary Header -->
+                                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                        <div class="md:col-span-2 bg-[#0f1f23] border border-slate-800 rounded-3xl p-8 parchment-effect relative overflow-hidden shadow-2xl">
+                                            <div class="absolute top-0 right-0 p-8 opacity-5">
+                                                <span class="material-symbols-outlined text-9xl text-pirate-gold">military_tech</span>
+                                            </div>
+                                            <div class="relative z-10 flex items-center gap-6">
+                                                <div :class="['size-20 rounded-2xl flex items-center justify-center shadow-2xl border-2 transition-all', 
+                                                    currentCorrection.result === 'Valid' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-500 shadow-emerald-500/10' : 'bg-rose-500/10 border-rose-500/30 text-rose-500 shadow-rose-500/10']">
+                                                    <span class="material-symbols-outlined text-5xl">{{ currentCorrection.result === 'Valid' ? 'verified' : 'cancel' }}</span>
+                                                </div>
+                                                <div>
+                                                    <h3 class="text-3xl font-black adventure-title tracking-tight text-slate-100">{{ currentCorrection.result === 'Valid' ? 'Mission Success' : 'Mission Failed' }}</h3>
+                                                    <p class="text-slate-500 font-bold uppercase text-[10px] tracking-[0.3em] mt-1">Status: {{ currentCorrection.result }} • Recorded by Adm. {{ currentCorrection.teacher?.last_name }}</p>
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div class="flex items-center gap-2">
-                                            <div
-                                                class="flex bg-slate-100 dark:bg-background-dark p-1 rounded-lg border border-slate-200 dark:border-[#224249]">
-                                                <input class="hidden custom-radio" :id="`skill_${brief_skill_level?.skill?.id}_poor`" :name="`skill_${brief_skill_level?.skill?.id}`"
-                                                    type="radio" @change="addDetailGrade(brief_skill_level?.id, 'POOR')" />
-                                                <label
-                                                    class="px-4 py-1.5 rounded-md text-[10px] font-black uppercase cursor-pointer hover:bg-poor-red/10 text-poor-red border border-transparent transition-all"
-                                                    :for="`skill_${brief_skill_level?.skill?.id}_poor`">POOR</label>
-                                                <input class="hidden custom-radio" :id="`skill_${brief_skill_level?.skill?.id}_avg`" :name="`skill_${brief_skill_level?.skill?.id}`"
-                                                    type="radio" @change="addDetailGrade(brief_skill_level?.id, 'AVERAGE')" />
-                                                <label
-                                                    class="px-4 py-1.5 rounded-md text-[10px] font-black uppercase cursor-pointer hover:bg-average-yellow/10 text-average-yellow border border-transparent transition-all"
-                                                    :for="`skill_${brief_skill_level?.skill?.id}_avg`">AVERAGE</label>
-                                                <input class="hidden custom-radio" :id="`skill_${brief_skill_level?.skill?.id}_exc`"
-                                                    :name="`skill_${brief_skill_level?.skill?.id}`" type="radio" @change="addDetailGrade(brief_skill_level?.id, 'EXCELLENT')" />
-                                                <label
-                                                    class="px-4 py-1.5 rounded-md text-[10px] font-black uppercase cursor-pointer hover:bg-excellent-green/10 text-excellent-green border border-transparent transition-all"
-                                                    :for="`skill_${brief_skill_level?.skill?.id}_exc`">EXCELLENT</label>
+                                        
+                                        <div class="bg-[#0a1416] border border-slate-800 rounded-3xl p-6 flex flex-col justify-center items-center text-center group hover:border-pirate-gold/20 transition-all">
+                                            <div class="size-12 rounded-full bg-slate-800/50 flex items-center justify-center text-slate-500 mb-3 group-hover:bg-pirate-gold/10 group-hover:text-pirate-gold transition-all">
+                                                <span class="material-symbols-outlined">event</span>
+                                            </div>
+                                            <p class="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-1">Appraisal Date</p>
+                                            <p class="text-sm font-bold text-slate-300">{{ new Date(currentCorrection.created_at).toLocaleDateString(undefined, { dateStyle: 'long' }) }}</p>
+                                        </div>
+                                    </div>
+
+                                    <!-- Feedback Message -->
+                                    <div class="space-y-4">
+                                        <h4 class="text-xs font-black text-pirate-gold uppercase tracking-[0.3em] flex items-center gap-3">
+                                            Official Appraisal
+                                            <span class="h-px flex-1 bg-pirate-gold/20"></span>
+                                        </h4>
+                                        <div class="bg-black/30 rounded-2xl p-8 border border-slate-800 shadow-inner relative group backdrop-blur-sm text-slate-200">
+                                            <div class="absolute -top-4 -left-4 size-10 rounded-xl bg-pirate-gold flex items-center justify-center text-background-dark shadow-lg rotate-12 group-hover:rotate-0 transition-all duration-500">
+                                                <span class="material-symbols-outlined">history_edu</span>
+                                            </div>
+                                            <!-- Styled Markdown Content -->
+                                            <div class="prose prose-invert max-w-none prose-sm prose-p:leading-relaxed prose-headings:text-pirate-gold prose-headings:font-black prose-strong:text-pirate-gold prose-code:text-emerald-400 prose-code:bg-slate-900/50 prose-code:px-1 prose-code:rounded overflow-hidden" 
+                                                v-html="currentCorrectionMessage">
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Detailed Skills Grades -->
+                                    <div class="space-y-4">
+                                        <h4 class="text-xs font-black text-pirate-gold uppercase tracking-[0.3em] flex items-center gap-3">
+                                            Skill Mastery Breakdown
+                                            <span class="h-px flex-1 bg-pirate-gold/20"></span>
+                                        </h4>
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div v-for="detail in currentCorrection.correction_details" :key="detail.id"
+                                                class="bg-[#152a2e]/60 border border-slate-800 rounded-2xl p-5 flex items-center justify-between group hover:border-pirate-gold/30 transition-all hover:bg-[#1a3439]/80">
+                                                <div class="flex items-center gap-4">
+                                                    <div class="size-12 rounded-xl bg-slate-900 flex items-center justify-center text-xs font-black text-pirate-gold group-hover:scale-105 group-hover:bg-pirate-gold group-hover:text-background-dark transition-all shadow-inner">
+                                                        {{ detail.brief_skill_level?.skill?.code }}
+                                                    </div>
+                                                    <div>
+                                                        <h5 class="text-sm font-bold text-slate-200 leading-tight">{{ detail.brief_skill_level?.skill?.title }}</h5>
+                                                        <p class="text-[10px] text-slate-500 font-bold uppercase mt-0.5 tracking-tighter">{{ detail.brief_skill_level?.level?.name }}</p>
+                                                    </div>
+                                                </div>
+                                                <div :class="['px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all shadow-sm', getGradeColor(detail.grade)]">
+                                                    {{ detail.grade }}
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                        </div>
-                        <div class="flex justify-end pt-4">
-                            <button v-if="is_all_grades_setted" type="submit"
-                                class="bg-pirate-gold hover:bg-pirate-gold-dark text-background-dark px-10 py-3 rounded-xl font-black text-sm uppercase tracking-[0.2em] transition-all shadow-[0_4px_15px_rgba(212,175,55,0.4)] hover:scale-[1.02] flex items-center gap-3">
-                                <span class="material-symbols-outlined font-bold">history_edu</span>
-                                Publish Bounty
-                            </button>
-                        </div>
-                    </section>
-                    <template v-else>
-                        <section v-if="!edit_mode" class="space-y-6 pb-12">
-                            <div class="flex items-center gap-2 text-pirate-gold">
-                                <span class="material-symbols-outlined">auto_stories</span>
-                                <h3 class="text-lg font-bold adventure-title uppercase tracking-widest">Captain's Log
-                                    Summary</h3>
-                            </div>
-                            <div class="space-y-8">
-                                <div class="space-y-3">
-                                    <label class="text-xs font-black uppercase tracking-widest text-slate-400">Captain's
-                                        Message</label>
-                                    <div
-                                        class="w-full dark:bg-[#1a2b2e] rounded-xl p-6 text-sm parchment-static border border-pirate-gold/20 shadow-inner">
-                                        <p class="text-slate-300 leading-relaxed font-medium">
-                                            "{{ correction?.correction?.message }}"
+                                
+                                <!-- Evaluation Pending / No Correction -->
+                                <div v-else class="space-y-8">
+                                    <!-- Job Status if running -->
+                                    <div v-if="(currentSubmission?.evaluation_job?.status === 'pending' || currentSubmission?.evaluation_job?.status === 'processing') || 
+                                              (currentSubmission?.problem_submission_job?.status === 'pending' || currentSubmission?.problem_submission_job?.status === 'running')" 
+                                        class="h-[50vh] flex flex-col items-center justify-center bg-[#0f1f23]/30 rounded-3xl border border-dashed border-pirate-gold/30">
+                                        <div class="relative mb-10">
+                                            <div class="size-24 rounded-full border-2 border-pirate-gold/20 border-t-pirate-gold animate-spin"></div>
+                                            <div class="absolute inset-0 flex items-center justify-center">
+                                                <span class="material-symbols-outlined text-4xl text-pirate-gold animate-pulse">analytics</span>
+                                            </div>
+                                        </div>
+                                        <h3 class="text-2xl font-bold adventure-title text-pirate-gold mb-3">AI Scribes are busy...</h3>
+                                        <p class="text-slate-500 text-center max-w-md px-6">
+                                            The system is currently evaluating the student's submission. 
+                                            The captain's verdict will be available once the analysis is complete.
                                         </p>
                                     </div>
-                                </div>
-                                <div class="space-y-4">
-                                    <label class="text-xs font-black uppercase tracking-widest text-slate-400">Skill
-                                        Proficiency Evaluation</label>
-                                    <div class="grid grid-cols-1 gap-3">
-                                        <div v-for="detail in correction?.correction?.correction_details"
-                                            class="bg-white dark:bg-[#182f34] border border-slate-200 dark:border-[#224249] rounded-xl p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                                            <div>
-                                                <h4 class="font-bold text-base tracking-wide">{{ detail?.brief_skill_level?.skill?.title }}</h4>
-                                                <p class="text-[10px] text-slate-500 uppercase font-bold">Target: Level {{ detail?.brief_skill_level?.level.order }}
-                                                    ({{ detail?.brief_skill_level?.level.name }})</p>
-                                            </div>
-                                            <div class="flex items-center">
-                                                <div v-if="detail?.grade === 'EXCELLENT'"
-                                                    class="bg-excellent-green text-background-dark px-6 py-2 rounded-lg text-[11px] font-black uppercase tracking-widest shadow-[0_0_15px_rgba(107,193,103,0.3)]">
-                                                    EXCELLENT
-                                                </div>
-                                                <div v-else-if="detail?.grade === 'AVERAGE'"
-                                                    class="bg-average-yellow text-background-dark px-6 py-2 rounded-lg text-[11px] font-black uppercase tracking-widest shadow-[0_0_15px_rgba(255,217,61,0.3)]">
-                                                    AVERAGE
-                                                </div>
-                                                <div v-else-if="detail?.grade === 'POOR'"
-                                                    class="bg-poor-red text-background-dark px-6 py-2 rounded-lg text-[11px] font-black uppercase tracking-widest shadow-[0_0_15px_rgba(255,98,98,0.3)]">
-                                                    POOR
-                                                </div>
-                                            </div>
+
+                                    <!-- Evaluate Now if jobs done but no correction -->
+                                    <div v-else class="h-[50vh] flex flex-col items-center justify-center bg-[#0f1f23]/30 rounded-3xl border border-dashed border-slate-800">
+                                        <div class="size-24 rounded-full bg-slate-800/50 flex items-center justify-center text-slate-600 mb-8">
+                                            <span class="material-symbols-outlined text-6xl">gavel</span>
                                         </div>
+                                        <h3 class="text-2xl font-bold adventure-title text-slate-400 mb-4">No Verdict Rendered</h3>
+                                        <p class="text-slate-500 mb-8 text-center max-w-sm px-6">
+                                            The student has submitted their payload, but no official appraisal has been recorded yet.
+                                        </p>
+                                        <button class="bg-pirate-gold hover:bg-pirate-gold-dark text-background-dark px-10 py-4 rounded-2xl font-black text-sm uppercase tracking-[0.2em] transition-all transform hover:scale-105 active:scale-95 shadow-[0_0_30px_rgba(212,175,55,0.2)]">
+                                            Evaluate Now
+                                        </button>
                                     </div>
                                 </div>
                             </div>
-                            <div class="flex justify-end pt-4">
-                                <button type="button" @click="set_edit_mode()"
-                                    class="bg-pirate-gold hover:bg-pirate-gold-dark text-background-dark px-10 py-3 rounded-xl font-black text-sm uppercase tracking-[0.2em] transition-all shadow-[0_4px_15px_rgba(212,175,55,0.4)] hover:scale-[1.02] flex items-center gap-3">
-                                    <span class="material-symbols-outlined font-bold">history_edu</span>
-                                    Edit Bounty
-                                </button>
-                            </div>
-                        </section>
-                        <section v-else class="space-y-6 pb-12">
-                            <div class="flex items-center gap-2 text-pirate-gold">
-                                <span class="material-symbols-outlined">edit_square</span>
-                                <h3 class="text-lg font-bold adventure-title uppercase tracking-widest">Captain's Assessment
-                                </h3>
-                            </div>
-                            <div class="space-y-8">
-                                <div class="space-y-2">
-                                    <label class="text-xs font-black uppercase tracking-widest text-slate-400">Captain's
-                                        Message</label>
-                                    <textarea v-model="form.message"
-                                        class="w-full bg-white dark:bg-[#182f34] border-slate-200 dark:border-[#224249] rounded-xl p-4 text-sm focus:ring-primary focus:border-primary placeholder:italic parchment-effect"
-                                        placeholder="Write your feedback to the crew member..." rows="4"></textarea>
-                                    <p v-if="errs.message" class="text-red-500 text-xs mt-1">{{ errs.message }}</p>
-                                </div>
-                                <div class="space-y-4">
-                                    <label class="text-xs font-black uppercase tracking-widest text-slate-400">Skill
-                                        Proficiency Evaluation</label>
-                                    <div class="space-y-3">
-                                        <div v-for="detail in correction?.correction?.correction_details"
-                                            class="bg-white dark:bg-[#182f34] border border-slate-200 dark:border-[#224249] rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                                            <div>
-                                                <h4 class="font-bold text-sm tracking-wide">{{ detail?.brief_skill_level?.skill?.code }}: {{ detail?.brief_skill_level?.skill?.title }}</h4>
-                                                <p class="text-[10px] text-slate-500 uppercase font-bold">Target: Level {{ detail?.brief_skill_level?.level?.order }}
-                                                    ({{ detail?.brief_skill_level?.level?.name }})</p>
-                                            </div>
-                                            <div class="flex items-center gap-2">
-                                                <div
-                                                    class="flex bg-slate-100 dark:bg-background-dark p-1 rounded-lg border border-slate-200 dark:border-[#224249]">
-                                                    <input class="hidden custom-radio" :id="`skill_${detail?.brief_skill_level?.skill?.id}_poor`" :name="`skill_${detail?.brief_skill_level?.skill?.id}`"
-                                                        type="radio" @change="addDetailGrade(detail?.brief_skill_level?.id, 'POOR')" :checked="detail?.grade === 'POOR'" />
-                                                    <label
-                                                        class="px-4 py-1.5 rounded-md text-[10px] font-black uppercase cursor-pointer hover:bg-poor-red/10 text-poor-red border border-transparent transition-all"
-                                                        :for="`skill_${detail?.brief_skill_level?.skill?.id}_poor`">POOR</label>
-                                                    <input class="hidden custom-radio" :id="`skill_${detail?.brief_skill_level?.skill?.id}_avg`" :name="`skill_${detail?.brief_skill_level?.skill?.id}`"
-                                                        type="radio" @change="addDetailGrade(detail?.brief_skill_level?.id, 'AVERAGE')" :checked="detail?.grade === 'AVERAGE'" />
-                                                    <label
-                                                        class="px-4 py-1.5 rounded-md text-[10px] font-black uppercase cursor-pointer hover:bg-average-yellow/10 text-average-yellow border border-transparent transition-all"
-                                                        :for="`skill_${detail?.brief_skill_level?.skill?.id}_avg`">AVERAGE</label>
-                                                    <input class="hidden custom-radio" :id="`skill_${detail?.brief_skill_level?.skill?.id}_exc`"
-                                                        :name="`skill_${detail?.brief_skill_level?.skill?.id}`" type="radio" @change="addDetailGrade(detail?.brief_skill_level?.id, 'EXCELLENT')" :checked="detail?.grade === 'EXCELLENT'" />
-                                                    <label
-                                                        class="px-4 py-1.5 rounded-md text-[10px] font-black uppercase cursor-pointer hover:bg-excellent-green/10 text-excellent-green border border-transparent transition-all"
-                                                        :for="`skill_${detail?.brief_skill_level?.skill?.id}_exc`">EXCELLENT</label>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="flex justify-end pt-4">
-                                <button v-if="is_all_grades_setted" type="submit"
-                                    class="bg-pirate-gold hover:bg-pirate-gold-dark text-background-dark px-10 py-3 rounded-xl font-black text-sm uppercase tracking-[0.2em] transition-all shadow-[0_4px_15px_rgba(212,175,55,0.4)] hover:scale-[1.02] flex items-center gap-3">
-                                    <span class="material-symbols-outlined font-bold">history_edu</span>
-                                    Update Bounty
-                                </button>
-                            </div>
-                        </section>
-                    </template>
+
+                        </div>
+                    </div>
                 </div>
-                <footer
-                    class="mt-auto border-t border-slate-200 dark:border-[#224249] bg-white dark:bg-[#102023] px-8 py-3 flex items-center justify-between text-[11px] font-medium text-slate-500 uppercase tracking-widest shrink-0">
+
+                <!-- Empty State: No Selection -->
+                <div v-else class="flex-1 flex flex-col items-center justify-center">
+                    <div class="size-32 rounded-full bg-slate-800/20 border border-slate-800/50 flex items-center justify-center text-slate-700 mb-8 relative">
+                        <span class="material-symbols-outlined text-7xl animate-pulse">explore</span>
+                        <div class="absolute inset-0 rounded-full border border-pirate-gold/10 animate-ping"></div>
+                    </div>
+                    <h2 class="text-3xl font-bold adventure-title text-slate-500 mb-3 tracking-wider">Uncharted Waters</h2>
+                    <p class="text-slate-600 font-medium text-center max-w-sm px-6">
+                        Select a <span class="text-pirate-gold">Crew Member</span> and <span class="text-pirate-gold">Mission Brief</span> from the registry to begin the evaluation process.
+                    </p>
+                </div>
+
+                <!-- Footer Info -->
+                <footer class="h-10 border-t border-slate-800 bg-[#0d1b1e] px-6 flex items-center justify-between text-[9px] font-black text-slate-600 uppercase tracking-[0.2em] shrink-0 z-20">
                     <div class="flex gap-6">
-                        <span class="flex items-center gap-1.5"><span
-                                class="size-2 bg-emerald-500 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.5)]"></span>
-                            Signal: Logged On</span>
-                        <span class="flex items-center gap-1.5"><span
-                                class="material-symbols-outlined text-[14px]">anchor</span> Fleet: Marine HQ
-                            Server</span>
+                        <span class="flex items-center gap-1.5"><span class="size-1.5 bg-emerald-500 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.5)]"></span> Marine HQ Online</span>
+                        <span class="flex items-center gap-1.5"><span class="material-symbols-outlined text-[12px]">security</span> Encryption: AES-256</span>
                     </div>
                     <div class="flex gap-4">
-                        <span class="text-primary/70">V 2.4.0-ARABASTA</span>
-                        <a class="hover:text-primary transition-colors flex items-center gap-1" href="#">
-                            <span class="material-symbols-outlined text-[14px]">help</span> Help Center
-                        </a>
+                        <span class="text-pirate-gold/50 tracking-tighter">PROTO-ID: {{ selectedBriefId ? `BRF-${selectedBriefId}` : 'NONE' }}</span>
                     </div>
                 </footer>
-            </form>
-            <div v-else class="w-full h-[calc(100vh-4.5rem)] flex items-center justify-center">
-                <div class="flex flex-col items-center gap-2">
-                    <div class="flex items-center gap-2">
-                        <div class="size-12 rounded-full bg-slate-100 dark:bg-[#182f34] border border-slate-200 dark:border-[#224249] flex items-center justify-center">
-                            <span class="material-symbols-outlined text-2xl text-pirate-gold">warning</span>
-                        </div>
-                        <div class="flex flex-col">
-                            <h1 class="text-2xl font-bold tracking-tight">There's no submission selected</h1>
-                            <p class="text-sm font-medium tracking-tight">Please select a submission to correct</p>
-                        </div>
-                    </div>
-                </div>
             </div>
         </main>
     </NuxtLayout>
 </template>
+
+<style scoped>
+    .parchment-effect {
+        background-image: radial-gradient(circle at 2px 2px, rgba(212,175,55,0.03) 1px, transparent 0);
+        background-size: 24px 24px;
+    }
+
+    .adventure-title {
+        font-family: 'Outfit', sans-serif;
+        letter-spacing: -0.02em;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar {
+        width: 4px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: #1e3a41;
+        border-radius: 10px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: #d4af37;
+    }
+
+    select option {
+        background-color: #0d1b1e;
+        color: #e2e8f0;
+    }
+</style>
