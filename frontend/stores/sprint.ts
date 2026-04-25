@@ -4,7 +4,7 @@ import { api } from '~/utils/api';
 import type { meta, ReturnData } from '../types/api';
 import type { Sprint, SprintSkill } from '../types/sprint';
 import { useToastStore } from './toast';
-import { PaginatedData } from '../types/pagination';
+import type { PaginatedData } from '../types/pagination';
 
 export const useSprint = defineStore(
     'sprint',
