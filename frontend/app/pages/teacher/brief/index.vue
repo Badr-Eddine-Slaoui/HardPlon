@@ -46,6 +46,10 @@
         modal.classList.add('hidden');
     }
 
+    const changePage = async (page: number) => {
+        await store.fetchBriefs(page);
+    };
+
     definePageMeta({
         middleware: ['auth', 'teacher']
     })
@@ -99,15 +103,6 @@
                                     <option>Water 7 Arc</option>
                                 </select>
                             </div>
-                            <div class="flex items-center gap-2">
-                                <span class="text-[10px] font-bold uppercase text-slate-400">Formation:</span>
-                                <select
-                                    class="bg-slate-50 dark:bg-background-dark border-slate-200 dark:border-[#224249] rounded-lg px-3 py-1.5 text-xs focus:ring-primary focus:border-primary">
-                                    <option>All Types</option>
-                                    <option>Solo (Loner)</option>
-                                    <option>Squad (Crew)</option>
-                                </select>
-                            </div>
                         </div>
                     </div>
                     <div class="overflow-x-auto">
@@ -124,7 +119,7 @@
                             </thead>
                             <tbody class="divide-y divide-slate-100 dark:divide-[#224249]">
                                 <template v-for="brief in store.briefs" :key="brief.id">
-                                    <tr v-if="brief.is_active" class="hover:bg-slate-50 dark:hover:bg-[#224249]/30 transition-colors group">
+                                    <tr v-if="!brief.deleted_at" class="hover:bg-slate-50 dark:hover:bg-[#224249]/30 transition-colors group">
                                         <td class="px-6 py-5">
                                             <div class="flex items-center gap-3">
                                                 <div
@@ -146,12 +141,12 @@
                                         </td>
                                         <td class="px-6 py-5">
                                             <span
-                                                class="text-sm font-medium text-slate-600 dark:text-slate-300">{{ brief.sprint.name }}</span>
+                                                class="text-sm font-medium text-slate-600 dark:text-slate-300">{{ brief.sprint?.name }}</span>
                                         </td>
                                         <td class="px-6 py-5">
                                             <div v-if="brief.is_collective" class="flex items-center gap-1.5 text-xs font-semibold">
                                                 <span
-                                                    class="material-symbols-outlined text-sm text-primary">person</span>
+                                                    class="material-symbols-outlined text-sm text-primary">groups</span>
                                                 Crew
                                             </div>
                                             <div v-else class="flex items-center gap-1.5 text-xs font-semibold">
@@ -211,12 +206,12 @@
                                         </td>
                                         <td class="px-6 py-5">
                                             <span
-                                                class="text-sm font-medium text-slate-600 dark:text-slate-300">{{ brief.sprint.name }}</span>
+                                                class="text-sm font-medium text-slate-600 dark:text-slate-300">{{ brief.sprint?.name }}</span>
                                         </td>
                                         <td class="px-6 py-5">
                                             <div v-if="brief.is_collective" class="flex items-center gap-1.5 text-xs font-semibold">
                                                 <span
-                                                    class="material-symbols-outlined text-sm text-primary">person</span>
+                                                    class="material-symbols-outlined text-sm text-primary">groups</span>
                                                 Crew
                                             </div>
                                             <div v-else class="flex items-center gap-1.5 text-xs font-semibold">
@@ -244,6 +239,37 @@
                                 </template>
                             </tbody>
                         </table>
+                    </div>
+                    <!-- Pagination -->
+                    <div class="p-6 border-t border-slate-200 dark:border-[#224249] flex items-center justify-between">
+                        <p class="text-xs text-slate-500 dark:text-slate-400">
+                            Showing <span class="font-bold text-primary">{{ store.meta.from }}</span> to <span
+                                class="font-bold text-primary">{{ store.meta.to }}</span> of <span
+                                class="font-bold text-primary">{{ store.meta.total }}</span> missions
+                        </p>
+                        <div class="flex items-center gap-2">
+                            <button @click="changePage(store.meta.current_page - 1)" :disabled="store.meta.current_page === 1"
+                                class="size-8 rounded-lg flex items-center justify-center border border-slate-200 dark:border-[#224249] text-slate-500 hover:bg-slate-50 dark:hover:bg-[#224249] disabled:opacity-50 transition-all">
+                                <span class="material-symbols-outlined text-lg">chevron_left</span>
+                            </button>
+                            <template v-for="page in store.meta.last_page" :key="page">
+                                <button v-if="page >= store.meta.current_page - 2 && page <= store.meta.current_page + 2"
+                                    @click="changePage(page)"
+                                    :class="[
+                                        'size-8 rounded-lg flex items-center justify-center text-xs font-bold transition-all',
+                                        store.meta.current_page === page
+                                            ? 'bg-primary text-background-dark shadow-lg shadow-primary/20'
+                                            : 'border border-slate-200 dark:border-[#224249] text-slate-500 hover:bg-slate-50 dark:hover:bg-[#224249]'
+                                    ]">
+                                    {{ page }}
+                                </button>
+                            </template>
+                            <button @click="changePage(store.meta.current_page + 1)"
+                                :disabled="store.meta.current_page === store.meta.last_page"
+                                class="size-8 rounded-lg flex items-center justify-center border border-slate-200 dark:border-[#224249] text-slate-500 hover:bg-slate-50 dark:hover:bg-[#224249] disabled:opacity-50 transition-all">
+                                <span class="material-symbols-outlined text-lg">chevron_right</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
