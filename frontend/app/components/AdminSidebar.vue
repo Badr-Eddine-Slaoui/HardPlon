@@ -8,7 +8,7 @@
 
     const isActive = (r: string, deep = false) => {
         const active = deep
-            ? route.path.startsWith(r)
+            ? route.path === r || route.path.startsWith(r + '/')
             : route.path === r
 
         return active
@@ -88,6 +88,35 @@
                     <span class="material-symbols-outlined">group</span>
                     <span class="font-medium text-sm">Class Groups</span>
                 </NuxtLink>
+
+                <NuxtLink
+                    :class="isActive('/admin/runner', true)"
+                    to="/admin/runner">
+                    <span class="material-symbols-outlined">terminal</span>
+                    <span class="font-medium text-sm">Runners</span>
+                </NuxtLink>
+
+                <NuxtLink
+                    :class="isActive('/admin/runner-version', true)"
+                    to="/admin/runner-version">
+                    <span class="material-symbols-outlined">package_2</span>
+                    <span class="font-medium text-sm">Runner Versions</span>
+                </NuxtLink>
+
+                <NuxtLink
+                    :class="isActive('/admin/stack', true)"
+                    to="/admin/stack">
+                    <span class="material-symbols-outlined">layers</span>
+                    <span class="font-medium text-sm">Tech Stacks</span>
+                </NuxtLink>
+                
+                <NuxtLink
+                    :class="isActive('/admin/language', true)"
+                    to="/admin/language">
+                    <span class="material-symbols-outlined">translate</span>
+                    <span class="font-medium text-sm">Sea Tongues</span>
+                </NuxtLink>
+
                 <form @submit.prevent="submit" class="w-full" >
                     <button type="submit"
                         class="flex w-full items-center gap-3 px-4 py-3 rounded-lg text-red-500 bg-red-500/10 dark:text-red-400 hover:bg-slate-100 dark:hover:bg-[#224249] transition-colors">
