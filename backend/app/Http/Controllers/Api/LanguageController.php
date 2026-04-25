@@ -37,6 +37,27 @@ class LanguageController extends Controller
         }
     }
 
+    public function getAllLanguages()
+    {
+        try {
+            $languages = Language::withoutTrashed()->get();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Successfully fetched all languages.',
+                'data' => $languages,
+            ], 200);
+
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'data' => null,
+                'message' => "Something went wrong. Please try again.",
+                'code' => $e->getCode(),
+            ], 500);
+        }
+    }
+
     /**
      * Store a newly created resource in storage.
      */
@@ -61,7 +82,7 @@ class LanguageController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Language created successfully.',
-                'data' => $language
+                'data' => compact('language')
             ], 201);
 
         } catch (\Throwable $e) {
@@ -93,7 +114,7 @@ class LanguageController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Successfully fetched language.',
-                'data' => $language
+                'data' => compact('language'),
             ], 200);
 
         } catch (\Throwable $e) {
@@ -140,7 +161,7 @@ class LanguageController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Language updated successfully.',
-                'data' => $language
+                'data' => compact('language')
             ], 200);
 
         } catch (\Throwable $e) {
@@ -183,6 +204,47 @@ class LanguageController extends Controller
                 'success' => false,
                 'data' => null,
                 'message' => 'Failed to delete language. Please try again.'
+            ], 400);
+
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'data' => null,
+                'message' => "Something went wrong. Please try again.",
+                'code' => $e->getCode(),
+            ], 500);
+        }
+    }
+    /**
+     * Restore the specified resource from storage.
+     */
+    public function restore(int $id)
+    {
+        try {
+            $language = Language::onlyTrashed()->find($id);
+
+            if (!$language) {
+                return response()->json([
+                    'success' => false,
+                    'data' => null,
+                    'message' => 'Language not found.'
+                ], 404);
+            }
+
+            $is_restored = $language->restore();
+
+            if ($is_restored) {
+                return response()->json([
+                    'success' => true,
+                    'data' => compact('language'),
+                    'message' => 'Successfully restored language.'
+                ], 200);
+            }
+
+            return response()->json([
+                'success' => false,
+                'data' => null,
+                'message' => 'Failed to restore language. Please try again.'
             ], 400);
 
         } catch (\Throwable $e) {
