@@ -16,6 +16,7 @@ return new class extends Migration
             $table->foreignId('brief_id')->constrained('briefs')->cascadeOnDelete();
             $table->foreignId('student_id')->constrained('users')->cascadeOnDelete();
             $table->foreignId('teacher_id')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignId('submission_id')->constrained('submissions')->cascadeOnDelete();
             $table->text('message');
             $table->timestamps();
             $table->softDeletes();
