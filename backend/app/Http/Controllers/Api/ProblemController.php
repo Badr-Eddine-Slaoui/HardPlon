@@ -18,8 +18,8 @@ class ProblemController extends Controller
             $perPage = request()->get('per_page', 5);
 
             [$problems, $archived_problems] = Octane::concurrently([
-                fn() => Problem::withoutTrashed()->paginate($perPage),
-                fn() => Problem::onlyTrashed()->paginate($perPage),
+                fn() => Problem::with(['language', 'brief'])->withoutTrashed()->paginate($perPage),
+                fn() => Problem::with(['language', 'brief'])->onlyTrashed()->paginate($perPage),
             ]);
 
             return response()->json([
@@ -87,7 +87,7 @@ class ProblemController extends Controller
     public function show(int $id)
     {
         try {
-            $problem = Problem::with(['brief', 'brief_skill_level.skill', 'brief_skill_level.level', 'language'])->find($id);
+            $problem = Problem::with(['brief', 'brief_skill_level.skill', 'brief_skill_level.level', 'language', 'test_cases'])->find($id);
 
             if (!$problem) {
                 return response()->json([
@@ -194,6 +194,48 @@ class ProblemController extends Controller
                 'success' => false,
                 'data' => null,
                 'message' => 'Failed to delete problem. Please try again.'
+            ], 400);
+
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'data' => null,
+                'message' => "Something went wrong. Please try again.",
+                'code' => $e->getCode(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Restore the specified resource from storage.
+     */
+    public function restore(int $id)
+    {
+        try {
+            $problem = Problem::onlyTrashed()->find($id);
+
+            if (!$problem) {
+                return response()->json([
+                    'success' => false,
+                    'data' => null,
+                    'message' => 'Problem not found in archives.'
+                ], 404);
+            }
+
+            $is_restored = $problem->restore();
+
+            if ($is_restored) {
+                return response()->json([
+                    'success' => true,
+                    'data' => compact('problem'),
+                    'message' => 'Problem restored successfully.'
+                ], 200);
+            }
+
+            return response()->json([
+                'success' => false,
+                'data' => null,
+                'message' => 'Failed to restore problem. Please try again.'
             ], 400);
 
         } catch (\Throwable $e) {
