@@ -3,6 +3,9 @@ import type { Level } from './level';
 import type { Sprint } from './sprint';
 import type { ClassGroup } from './class_group';
 import type { User } from './user';
+import type { Stack } from './stack';
+import type { Problem } from './problem';
+import type { ArchitectureRule } from './brief_version';
 
 export interface BriefSkillLevel {
     id: number;
@@ -16,10 +19,21 @@ export interface BriefSkillLevel {
     level: Level;
 }
 
+export interface BriefVersion {
+    id: number;
+    brief_id: number;
+    version: string;
+    architecture_rules: string[] | ArchitectureRule;
+    test_config: any;
+    created_at: string;
+    updated_at: string;
+}
+
 export interface Brief {
     id: number;
     sprint_id: number;
     class_group_id: number;
+    stack_id: number;
     teacher_id: number;
     title: string;
     description: string;
@@ -34,5 +48,8 @@ export interface Brief {
     sprint: Sprint;
     class_group: ClassGroup;
     teacher: User;
+    stack: Stack;
     brief_skill_levels: BriefSkillLevel[];
+    problems?: Problem[];
+    brief_versions?: BriefVersion[];
 }
