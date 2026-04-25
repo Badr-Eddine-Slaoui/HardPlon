@@ -40,6 +40,11 @@ class Problem extends Model
         return $this->belongsTo(Brief::class);
     }
 
+    public function brief_skill_level()
+    {
+        return $this->belongsTo(BriefSkillLevel::class);
+    }
+
     public function test_cases()
     {
         return $this->hasMany(ProblemTestCase::class);
