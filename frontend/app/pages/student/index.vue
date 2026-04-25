@@ -1,268 +1,282 @@
 <script setup lang="ts">
-    import { useBrief } from '~~/stores/brief';
-    import type { Brief } from '~~/types/brief';
-import { useSubmission } from '../../../stores/submission';
+import { useStudent } from '~~/stores/student';
+import { useUser } from '~~/stores/user';
+import { onMounted, computed } from 'vue';
 
-    useHead({
-        title: 'Student Dashboard - Bounty Board'
-    })
+const studentStore = useStudent();
+const userStore = useUser();
 
-    const store = useBrief();
-    const briefs = ref<Brief[] | null>(null)
-    const brief_type: Ref<string> = ref('solo')
-    const selected_brief: Ref<number | null> = ref(null)
-    const submitted_briefs = ref<number[] | null>(null)
-    const briefs_count: Ref<number> = ref(0)
-    const submission = useSubmission()
+const stats = computed(() => studentStore.dashboardData?.stats);
+const skillsProgress = computed(() => studentStore.dashboardData?.skills_progress || []);
+const recentActivity = computed(() => studentStore.dashboardData?.recent_activity || []);
 
-    const toggleBriefType = (type: string)=>{
-        brief_type.value = type
-        briefs_count.value = briefs.value?.filter(b => (b.is_collective && type == "squad") || (!b.is_collective && type == "solo")).length as number
+useHead({
+    title: 'Command Center - Student Dashboard'
+});
+
+onMounted(async () => {
+    await studentStore.fetchDashboardData();
+});
+
+definePageMeta({
+    middleware: ['auth', 'student']
+});
+
+const getGradeColor = (grade: string) => {
+    switch (grade) {
+        case 'EXCELLENT': return 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20';
+        case 'AVERAGE': return 'text-amber-500 bg-amber-500/10 border-amber-500/20';
+        case 'POOR': return 'text-rose-500 bg-rose-500/10 border-rose-500/20';
+        default: return 'text-slate-500 bg-slate-500/10 border-slate-500/20';
     }
+};
 
-    const getBrief = async (id: number) => {
-        selected_brief.value = id
-        await store.fetchBrief(id)
-    }
-
-    const selectBrief = (id: number)=>{
-        selected_brief.value = id
-        getBrief(id)
-    }
-
-    onMounted(async() => {
-        await submission.fetchStudentSubmissions();
-        submitted_briefs.value = submission.submissions?.map(b => b.brief_id) as number[]
-        briefs.value = await store.fetchStudentBriefs();
-        toggleBriefType('solo')
-        selectBrief(briefs.value?.find(b => !b.is_collective)?.id as number)
-    })
-
-    definePageMeta({
-        middleware: ['auth', 'student']
-    })
-
+const getRelativeTime = (dateString: string) => {
+    if (!dateString) return 'Unknown';
+    const date = new Date(dateString);
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    if (days === 0) return 'Today';
+    if (days === 1) return 'Yesterday';
+    return `${days} days ago`;
+};
 </script>
 
 <template>
     <NuxtLayout name="student">
-        <main class="flex-1 flex flex-col h-screen">
-            <header
-                class="h-16 border-b border-slate-200 dark:border-[#224249] bg-white/80 dark:bg-background-dark/80 backdrop-blur-md flex items-center justify-between px-8 shrink-0 z-10">
-                <div class="flex items-center gap-4">
-                    <h2 class="text-2xl font-bold tracking-tight adventure-title text-primary">
-                        Bounty Board
-                    </h2>
-                    <div class="hidden md:flex items-center gap-2">
-                        <span
-                            class="px-2 py-0.5 rounded bg-primary/10 text-primary text-[10px] font-bold border border-primary/20">CLASS
-                            MISSIONS</span>
-                        <span class="h-4 w-[1px] bg-slate-200 dark:bg-[#224249]"></span>
-                        <p class="text-xs text-slate-500 dark:text-slate-400 italic">
-                            "Wealth, fame, power... the world is waiting."
+        <main class="flex-1 flex flex-col h-screen overflow-hidden bg-[#0d1b1e]">
+            <!-- Header -->
+            <header class="h-24 border-b border-slate-800 bg-[#0a1416]/80 backdrop-blur-md flex items-center justify-between px-10 shrink-0 z-20">
+                <div class="flex items-center gap-6">
+                    <div class="size-14 rounded-2xl bg-pirate-gold/10 border border-pirate-gold/20 flex items-center justify-center text-pirate-gold shadow-[0_0_20px_rgba(212,175,55,0.1)]">
+                        <span class="material-symbols-outlined text-3xl">anchor</span>
+                    </div>
+                    <div>
+                        <h1 class="text-2xl font-black adventure-title text-slate-100 tracking-tight">Ahoy, {{ userStore.user?.first_name }}!</h1>
+                        <p class="text-xs text-slate-500 font-bold uppercase tracking-[0.2em] mt-1">
+                            Welcome back to the <span class="text-pirate-gold">Command Center</span>
                         </p>
                     </div>
                 </div>
+
                 <div class="flex items-center gap-4">
-                    <div
-                        class="flex items-center gap-2 px-3 py-1 bg-slate-100 dark:bg-[#182f34] border border-slate-200 dark:border-[#224249] rounded-lg">
-                        <span class="material-symbols-outlined text-pirate-gold text-lg">monetization_on</span>
-                        <span class="text-sm font-bold">12,450 ฿</span>
+                    <div class="flex flex-col items-end mr-4">
+                        <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Current Rank</span>
+                        <span class="text-lg font-black text-pirate-gold adventure-title">{{ stats?.rank || 'Cabin Boy' }}</span>
+                    </div>
+                    <div class="h-12 w-px bg-slate-800"></div>
+                    <div class="flex items-center gap-4 px-6 py-3 bg-black/40 border border-slate-800 rounded-2xl shadow-inner">
+                        <div class="size-10 rounded-full bg-pirate-gold/20 flex items-center justify-center text-pirate-gold">
+                            <span class="material-symbols-outlined">monetization_on</span>
+                        </div>
+                        <div>
+                            <p class="text-[10px] font-black text-slate-500 uppercase tracking-tighter leading-none">Belly Balance</p>
+                            <p class="text-xl font-black text-slate-100">{{ stats?.total_belly?.toLocaleString() ?? 0 }} ฿</p>
+                        </div>
                     </div>
                 </div>
             </header>
-            <div class="flex flex-1 overflow-hidden">
-                <div
-                    class="w-96 border-r border-slate-200 dark:border-[#224249] flex flex-col bg-white dark:bg-[#102023]">
-                    <div class="p-4 flex gap-2 shrink-0">
-                        <button @click="toggleBriefType('solo')"
-                            :class="`flex-1 py-2 px-4 rounded-lg font-bold text-sm  ${brief_type === 'solo' ? 'bg-primary text-background-dark shadow-lg shadow-primary/20' : 'bg-slate-100 dark:bg-[#224249] text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-[#2d565f]'} transition-all flex items-center justify-center gap-2`">
-                            <span class="material-symbols-outlined text-lg">person</span>
-                            Solo
-                        </button>
-                        <button @click="toggleBriefType('squad')"
-                            :class="`flex-1 py-2 px-4 rounded-lg font-bold text-sm  ${brief_type === 'squad' ? 'bg-primary text-background-dark shadow-lg shadow-primary/20' : 'bg-slate-100 dark:bg-[#224249] text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-[#2d565f]'} transition-all flex items-center justify-center gap-2`">
-                            <span class="material-symbols-outlined text-lg">groups</span>
-                            Squad
-                        </button>
-                    </div>
-                    <div class="flex-1 overflow-y-auto bounty-scroll p-4 space-y-4">
-                        <template v-if="briefs_count as number > 0">
-                            <template v-for="brief in briefs" :key="brief.id">
-                                <template v-if="(brief.is_collective && brief_type === 'squad') || (!brief.is_collective && brief_type === 'solo')">
-                                    <div v-if="selected_brief === brief.id"
-                                        class="p-4 rounded-xl bg-primary/10 border-2 border-primary shadow-lg cursor-pointer transition-all">
-                                        <div class="flex justify-between items-start mb-2">
-                                            <span
-                                                class="px-2 py-0.5 rounded bg-primary text-background-dark text-[10px] font-black uppercase tracking-wider">ACTIVE</span>
-                                            <span class="text-xs font-bold text-pirate-gold">500 ฿</span>
-                                        </div>
-                                        <h3 class="adventure-title text-lg font-bold leading-tight mb-1">
-                                            {{ brief.title }}
-                                        </h3>
-                                        <p class="text-xs text-slate-400 line-clamp-2 mb-3">
-                                            {{ brief.description }}
-                                        </p>
-                                        <div class="flex items-center gap-4">
-                                            <div class="flex items-center gap-1 text-[10px] font-bold text-slate-400 uppercase">
-                                                <span class="material-symbols-outlined text-sm">schedule</span>
-                                                {{ brief.end_date }}
-                                            </div>
-                                            <div class="flex items-center gap-1 text-[10px] font-bold text-slate-400 uppercase">
-                                                <span class="material-symbols-outlined text-sm">terminal</span>
-                                                {{ brief.sprint.name }}
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div v-else @click="selectBrief(brief.id)"
-                                        class="p-4 rounded-xl bg-slate-50 dark:bg-[#182f34] border border-slate-200 dark:border-[#224249] hover:border-primary/50 cursor-pointer transition-all">
-                                        <div class="flex justify-between items-start mb-2">
-                                            <span v-if="submitted_briefs?.find(b => b === brief.id) === undefined"
-                                                class="px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-500 text-[10px] font-black uppercase tracking-wider">Not Submitted</span>
-                                            <span v-else
-                                                class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-500 text-[10px] font-black uppercase tracking-wider">Submitted</span>
-                                            <span class="text-xs font-bold text-pirate-gold">300 ฿</span>
-                                        </div>
-                                        <h3 class="adventure-title text-lg font-bold leading-tight mb-1">{{ brief.title }}</h3>
-                                        <p class="text-xs text-slate-400 line-clamp-2 mb-3">{{ brief.description }}</p>
-                                        <div class="flex items-center gap-4">
-                                            <div class="flex items-center gap-1 text-[10px] font-bold text-slate-400 uppercase">
-                                                <span class="material-symbols-outlined text-sm">schedule</span>
-                                                {{ brief.end_date }}
-                                            </div>
-                                            <div class="flex items-center gap-1 text-[10px] font-bold text-slate-400 uppercase">
-                                                <span class="material-symbols-outlined text-sm">terminal</span>
-                                                {{ brief.sprint.name }}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </template>
-                            </template>
-                        </template>
-                        <template v-else>
-                            <div
-                                class="col-start-2 bg-white dark:bg-[#1a2e33] border border-slate-200 dark:border-[#224249] p-6 rounded-2xl h-[30vh]">
-                                <div class="space-y-4 flex flex-col justify-center items-center gap-y-5 h-full">
-                                    <div
-                                        class="size-12 mx-auto rounded-xl bg-red-500/10 flex items-center justify-center text-red-500">
-                                        <span class="material-symbols-outlined">info</span>
-                                    </div>
-                                    <div class="text-center">
-                                        <h3 class="font-bold text-lg">No Missions Found</h3>
-                                        <p class="text-sm text-slate-500 dark:text-[#90c1cb]">You don't have any missions currently, please wait until your commander assigns you a mission</p>
-                                    </div>
+
+            <div class="flex-1 overflow-y-auto p-10 custom-scrollbar">
+                <!-- Loading State -->
+                <div v-if="studentStore.loading && !studentStore.dashboardData" class="flex items-center justify-center h-full">
+                    <div class="size-12 border-4 border-pirate-gold border-t-transparent rounded-full animate-spin"></div>
+                </div>
+
+                <!-- Content -->
+                <div v-else-if="studentStore.dashboardData">
+                    <!-- Stats Grid -->
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
+                        <div class="bg-[#0f1f23] border border-slate-800 rounded-3xl p-6 relative overflow-hidden group hover:border-pirate-gold/30 transition-all duration-500 shadow-xl">
+                            <div class="absolute -right-4 -bottom-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                                <span class="material-symbols-outlined text-8xl text-pirate-gold">flag</span>
+                            </div>
+                            <p class="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4">Total Missions</p>
+                            <div class="flex items-end gap-3">
+                                <span class="text-4xl font-black text-slate-100 adventure-title">{{ stats?.completed_missions ?? 0 }}</span>
+                                <span class="text-slate-500 font-bold mb-1.5">/ {{ stats?.total_missions ?? 0 }}</span>
+                            </div>
+                            <div class="w-full bg-slate-800 h-1.5 rounded-full mt-6 overflow-hidden">
+                                <div class="bg-pirate-gold h-full rounded-full shadow-[0_0_10px_rgba(212,175,55,0.5)] transition-all duration-1000" 
+                                    :style="{ width: (stats?.success_rate ?? 0) + '%' }"></div>
+                            </div>
+                        </div>
+
+                        <div class="bg-[#0f1f23] border border-slate-800 rounded-3xl p-6 relative overflow-hidden group hover:border-emerald-500/30 transition-all duration-500 shadow-xl">
+                            <div class="absolute -right-4 -bottom-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                                <span class="material-symbols-outlined text-8xl text-emerald-500">verified</span>
+                            </div>
+                            <p class="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4">Success Rate</p>
+                            <div class="flex items-center gap-4">
+                                <span class="text-4xl font-black text-emerald-500 adventure-title">{{ stats?.success_rate ?? 0 }}%</span>
+                                <div class="px-2 py-1 rounded bg-emerald-500/10 text-emerald-500 text-[10px] font-black uppercase tracking-widest border border-emerald-500/20">
+                                    Excellent
                                 </div>
                             </div>
-                        </template>
+                            <p class="text-xs text-slate-500 mt-6 font-medium italic">"Fortune favors the bold."</p>
+                        </div>
+
+                        <div class="bg-[#0f1f23] border border-slate-800 rounded-3xl p-6 relative overflow-hidden group hover:border-pirate-gold/30 transition-all duration-500 shadow-xl">
+                            <div class="absolute -right-4 -bottom-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                                <span class="material-symbols-outlined text-8xl text-pirate-gold">inventory_2</span>
+                            </div>
+                            <p class="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4">Treasure Earned</p>
+                            <div class="flex items-center gap-3">
+                                <span class="text-4xl font-black text-slate-100 adventure-title">{{ (stats?.total_belly ?? 0) / 1000 }}</span>
+                                <span class="text-slate-500 font-bold mb-1.5 uppercase text-xs">Validated Chests</span>
+                            </div>
+                            <div class="flex items-center gap-1 mt-6">
+                                <span class="size-1.5 rounded-full bg-pirate-gold shadow-[0_0_5px_rgba(212,175,55,1)]"></span>
+                                <p class="text-[10px] font-black text-pirate-gold uppercase tracking-widest">Premium Bounty</p>
+                            </div>
+                        </div>
+
+                        <div class="bg-[#0f1f23] border border-slate-800 rounded-3xl p-6 relative overflow-hidden group hover:border-sky-500/30 transition-all duration-500 shadow-xl">
+                            <div class="absolute -right-4 -bottom-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                                <span class="material-symbols-outlined text-8xl text-sky-500">military_tech</span>
+                            </div>
+                            <p class="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4">Current Fleet Status</p>
+                            <div class="flex items-center gap-3">
+                                <span class="text-3xl font-black text-slate-100 adventure-title">{{ stats?.rank ?? 'Cabin Boy' }}</span>
+                            </div>
+                            <div class="mt-6 flex items-center gap-2">
+                                <div class="flex -space-x-2">
+                                    <div class="size-6 rounded-full border border-slate-800 bg-slate-700"></div>
+                                    <div class="size-6 rounded-full border border-slate-800 bg-slate-600"></div>
+                                    <div class="size-6 rounded-full border border-slate-800 bg-slate-500"></div>
+                                </div>
+                                <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest">+12 Crewmates Online</span>
+                            </div>
+                        </div>
                     </div>
-                </div>
-                <div class="flex-1 flex flex-col bg-[#101f22] overflow-y-auto bounty-scroll">
-                    <div class="p-8 max-w-4xl mx-auto w-full flex-1">
-                        <div class="mb-8 flex items-center justify-between">
-                            <div>
-                                <span class="text-primary font-bold text-sm tracking-widest uppercase">Mission Briefing
-                                    #{{ store.brief?.id }}</span>
-                                <h2 class="text-4xl font-bold adventure-title mt-2">
-                                    {{ store.brief?.title }}
+
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-10">
+                        <!-- Skills Progress -->
+                        <div class="lg:col-span-2 space-y-6">
+                            <div class="flex items-center justify-between">
+                                <h2 class="text-sm font-black text-pirate-gold uppercase tracking-[0.3em] flex items-center gap-4">
+                                    Skill Mastery Breakdown
+                                    <span class="h-px w-32 bg-pirate-gold/20"></span>
                                 </h2>
                             </div>
-                            <div class="text-right">
-                                <div class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">
-                                    Reward Pool
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div v-for="skill in skillsProgress" :key="skill.id" 
+                                    class="bg-[#152a2e]/60 border border-slate-800 rounded-2xl p-5 flex items-center justify-between group hover:border-pirate-gold/30 hover:bg-[#1a3439]/80 transition-all shadow-lg">
+                                    <div class="flex items-center gap-4">
+                                        <div class="size-12 rounded-xl bg-slate-900 flex items-center justify-center text-xs font-black text-pirate-gold group-hover:bg-pirate-gold group-hover:text-background-dark transition-all shadow-inner">
+                                            {{ skill.brief_skill_level?.skill?.code }}
+                                        </div>
+                                        <div>
+                                            <h5 class="text-sm font-bold text-slate-200 leading-tight">{{ skill.brief_skill_level?.skill?.title }}</h5>
+                                            <p class="text-[10px] text-slate-500 font-bold uppercase mt-0.5 tracking-tighter">Level {{ skill.brief_skill_level?.level?.order }}: {{ skill.brief_skill_level?.level?.name }}</p>
+                                        </div>
+                                    </div>
+                                    <div :class="['px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all shadow-sm', getGradeColor(skill.grade)]">
+                                        {{ skill.grade }}
+                                    </div>
                                 </div>
-                                <div class="text-3xl font-bold text-pirate-gold">
-                                    500 ฿
-                                    <span class="text-sm text-slate-500 font-sans">Belly</span>
+
+                                <!-- Empty State for Skills -->
+                                <div v-if="!skillsProgress.length" class="col-span-2 bg-[#0f1f23]/30 border border-dashed border-slate-800 rounded-3xl p-10 flex flex-col items-center text-center">
+                                    <span class="material-symbols-outlined text-4xl text-slate-700 mb-3">school</span>
+                                    <p class="text-sm text-slate-500 font-medium">No skill appraisals recorded yet. <br>Complete your first mission to see your progress!</p>
                                 </div>
                             </div>
                         </div>
-                        <div class="grid grid-cols-3 gap-6 mb-10">
-                            <div class="bg-[#182f34] p-4 rounded-xl border border-primary/20">
-                                <p class="text-[10px] font-black text-primary uppercase tracking-widest mb-1">
-                                    Sprint Phase
-                                </p>
-                                <p class="text-lg font-bold">{{ store.brief?.sprint.name }}</p>
-                                <p class="text-xs text-slate-400 w-[80%] truncate">{{ store.brief?.sprint.description }}</p>
-                            </div>
-                            <div class="bg-[#182f34] p-4 rounded-xl border border-primary/20">
-                                <p class="text-[10px] font-black text-primary uppercase tracking-widest mb-1">
-                                    Formation
-                                </p>
-                                <p class="text-lg font-bold">{{ store.brief?.class_group.formation.title }}</p>
-                                <p class="text-xs text-slate-400 w-[80%] truncate">{{ store.brief?.class_group.formation.description }}</p>
-                            </div>
-                            <div class="bg-[#182f34] p-4 rounded-xl border border-primary/20">
-                                <p class="text-[10px] font-black text-primary uppercase tracking-widest mb-1">
-                                    Deadline
-                                </p>
-                                <p class="text-lg font-bold">{{ (new Date(store.brief?.end_date as string)).toLocaleString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) }}</p>
-                                <p class="text-xs text-accent-red font-bold">{{ (new Date(store.brief?.end_date as string)).toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true }) }}</p>
-                            </div>
-                        </div>
-                        <div class="space-y-8">
-                            <section>
-                                <h4 class="adventure-title text-2xl mb-4 flex items-center gap-2">
-                                    <span class="material-symbols-outlined text-primary">flag</span>
-                                    The Objective
-                                </h4>
-                                <div class="bg-white/5 p-6 rounded-xl parchment-effect border border-white/5">
-                                    <p class="text-slate-300 leading-relaxed">
-                                        {{ store.brief?.description }}
-                                    </p>
+
+                        <!-- Recent Activity -->
+                        <div class="space-y-6">
+                            <h2 class="text-sm font-black text-pirate-gold uppercase tracking-[0.3em] flex items-center gap-4">
+                                Recent Log Entries
+                                <span class="h-px flex-1 bg-pirate-gold/20"></span>
+                            </h2>
+
+                            <div class="bg-[#0f1f23] border border-slate-800 rounded-3xl p-8 relative overflow-hidden shadow-2xl">
+                                <div class="absolute top-0 left-0 w-1 h-full bg-pirate-gold/10"></div>
+                                
+                                <div class="space-y-8 relative z-10">
+                                    <div v-for="activity in recentActivity" :key="activity.id" class="flex gap-6 relative group">
+                                        <!-- Timeline line -->
+                                        <div class="absolute left-[19px] top-10 bottom-[-32px] w-0.5 bg-slate-800 group-last:hidden"></div>
+                                        
+                                        <div :class="['size-10 rounded-full flex items-center justify-center border-2 shrink-0 z-10 transition-transform group-hover:scale-110', 
+                                            activity.type === 'submission' ? 'bg-sky-500/10 border-sky-500/30 text-sky-500' : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-500']">
+                                            <span class="material-symbols-outlined text-xl">{{ activity.icon }}</span>
+                                        </div>
+                                        
+                                        <div class="flex-1">
+                                            <div class="flex items-center justify-between mb-1">
+                                                <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest">{{ activity.type }} Recorded</p>
+                                                <span class="text-[9px] font-bold text-slate-600 uppercase">{{ getRelativeTime(activity.date) }}</span>
+                                            </div>
+                                            <h4 class="text-sm font-bold text-slate-200 group-hover:text-pirate-gold transition-colors">{{ activity.title }}</h4>
+                                            <div class="mt-2 flex items-center gap-2">
+                                                <span :class="['text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-tighter', 
+                                                    activity.status === 'Valid' ? 'bg-emerald-500/10 text-emerald-500' : 
+                                                    activity.status === 'Submitted' ? 'bg-sky-500/10 text-sky-500' : 'bg-rose-500/10 text-rose-500']">
+                                                    {{ activity.status }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Empty State for Activity -->
+                                    <div v-if="!recentActivity.length" class="flex flex-col items-center py-10 text-center">
+                                        <span class="material-symbols-outlined text-4xl text-slate-700 mb-3">history</span>
+                                        <p class="text-xs text-slate-500 font-medium italic">No entries in the captain's log yet.</p>
+                                    </div>
                                 </div>
-                            </section>
-                            <section>
-                                <h4 class="adventure-title text-2xl mb-4 flex items-center gap-2">
-                                    <span class="material-symbols-outlined text-primary">article</span>
-                                    Content
-                                </h4>
-                                <div class="bg-white/5 p-6 rounded-xl parchment-effect border border-white/5">
-                                    <p v-html="store.brief?.content" class="text-slate-300 leading-relaxed">
-                                    </p>
-                                </div>
-                            </section>
-                            <section>
-                                <h4 class="adventure-title text-2xl mb-4 flex items-center gap-2">
-                                    <span class="material-symbols-outlined text-primary">format_list_bulleted</span>
-                                    Requirements
-                                </h4>
-                                <ul class="space-y-3">
-                                    <li v-for="brief_skill_level in store.brief?.brief_skill_levels" class="flex gap-3 text-sm">
-                                        <span
-                                            class="material-symbols-outlined text-primary text-sm mt-0.5">verified</span>
-                                        <span class="text-slate-300">{{ brief_skill_level.skill.code }}: {{ brief_skill_level.skill.title }}, requred level: {{ brief_skill_level.level.name }}</span>
-                                    </li>
-                                </ul>
-                            </section>
-                        </div>
-                    </div>
-                    <div v-if="submitted_briefs?.find(b => b === selected_brief) === undefined"
-                        class="p-6 border-t border-slate-200 dark:border-[#224249] bg-white dark:bg-[#102023] shrink-0 sticky bottom-0 z-20">
-                        <div class="max-w-4xl mx-auto flex items-center justify-between">
-                            <div
-                                class="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase tracking-widest">
-                                <span class="material-symbols-outlined text-sm">info</span>
-                                Attach your Git repository link
                             </div>
-                            <NuxtLink :to="`/student/submission/${selected_brief}/create`"
-                                class="bg-pirate-gold hover:bg-pirate-gold-dark text-background-dark px-8 py-4 rounded-xl font-black text-lg uppercase tracking-widest transition-all shadow-[0_8px_20px_rgba(212,175,55,0.3)] hover:shadow-[0_8px_30px_rgba(212,175,55,0.5)] flex items-center gap-3 border border-pirate-gold-dark/30 hover:-translate-y-1">
-                                <span class="material-symbols-outlined text-2xl">diamond</span>
-                                Deliver Treasure
-                            </NuxtLink>
-                        </div>
-                    </div>
-                    <div v-else
-                        class="p-6 border-t border-slate-200 dark:border-[#224249] bg-white dark:bg-[#102023] shrink-0 sticky bottom-0 z-20">
-                        <div class="max-w-4xl mx-auto flex items-center justify-end">
-                            <NuxtLink :to="`/student/submission?brief_id=${selected_brief}`"
-                                class="bg-pirate-gold hover:bg-pirate-gold-dark text-background-dark px-8 py-4 rounded-xl font-black text-lg uppercase tracking-widest transition-all shadow-[0_8px_20px_rgba(212,175,55,0.3)] hover:shadow-[0_8px_30px_rgba(212,175,55,0.5)] flex items-center gap-3 border border-pirate-gold-dark/30 hover:-translate-y-1">
-                                <span class="material-symbols-outlined text-2xl">visibility</span>
-                                See Your Delivery
-                            </NuxtLink>
                         </div>
                     </div>
                 </div>
+                <div v-else class="flex flex-col items-center justify-center h-full text-slate-500">
+                    <span class="material-symbols-outlined text-6xl mb-4">sentiment_dissatisfied</span>
+                    <p class="text-lg font-bold">No dashboard data available.</p>
+                    <button @click="studentStore.fetchDashboardData()" class="mt-4 px-6 py-2 bg-pirate-gold text-background-dark font-black rounded-xl hover:bg-pirate-gold/80 transition-colors">Retry Fetching</button>
+                </div>
             </div>
+
+            <!-- Footer -->
+            <footer class="h-10 border-t border-slate-800 bg-[#0a1416] px-10 flex items-center justify-between text-[9px] font-black text-slate-600 uppercase tracking-[0.2em] shrink-0 z-20">
+                <div class="flex gap-6">
+                    <span class="flex items-center gap-1.5"><span class="size-1.5 bg-emerald-500 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.5)]"></span> Connection: Secured</span>
+                    <span class="flex items-center gap-1.5"><span class="material-symbols-outlined text-[12px]">security</span> Fleet Encryption Active</span>
+                </div>
+                <div class="flex gap-4">
+                    <span class="text-pirate-gold/50">Dashboard Proto-ID: {{ userStore.user?.id }}</span>
+                </div>
+            </footer>
         </main>
     </NuxtLayout>
 </template>
+
+<style scoped>
+.adventure-title {
+    font-family: 'Outfit', sans-serif;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #1a3439;
+    border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #d4af37;
+}
+
+.parchment-effect {
+    background-image: radial-gradient(circle at 2px 2px, rgba(212,175,55,0.03) 1px, transparent 0);
+    background-size: 24px 24px;
+}
+</style>
