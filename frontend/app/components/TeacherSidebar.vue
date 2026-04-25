@@ -46,6 +46,11 @@
                     <span class="material-symbols-outlined">anchor</span>
                     <span class="font-medium text-sm">Briefs</span>
                 </NuxtLink>
+                <NuxtLink :class="isActive('/teacher/problems', true)"
+                    to="/teacher/problems">
+                    <span class="material-symbols-outlined">psychology</span>
+                    <span class="font-medium text-sm">Marine Challenges</span>
+                </NuxtLink>
                 <NuxtLink :class="isActive('/teacher/submission', true)"
                     to="/teacher/submission">
                     <span class="material-symbols-outlined">inventory_2</span>
