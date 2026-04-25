@@ -108,6 +108,30 @@ class RunnerVersionController extends Controller
     }
 
     /**
+     * Get all runner versions without pagination.
+     */
+    public function getAllRunnerVersions()
+    {
+        try {
+            $runner_versions = RunnerVersion::with('runner')->where('status', 'active')->get();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Successfully fetched all runner versions.',
+                'data' => compact('runner_versions'),
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'data' => null,
+                'message' => "Something went wrong. Please try again.",
+                'code' => $e->getCode(),
+            ], 500);
+        }
+    }
+
+    /**
      * Store a newly created resource in storage.
      */
     public function store(RunnerVersionRequest $request)
