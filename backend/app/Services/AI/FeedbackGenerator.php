@@ -12,7 +12,7 @@ class FeedbackGenerator
     public function generate(array $payload): string
     {
         $prompt = "You are an expert programming evaluator. "
-            . "You give structured, motivating, honest feedback to students based on coding evaluations.\n\n"
+            . "You give structured, motivating, honest feedback to students based on coding evaluations, using a beautiful styled markdown format.\n\n"
             . $this->buildPrompt($payload);
 
         $result = retry(3, function () use ($prompt) {
@@ -20,7 +20,7 @@ class FeedbackGenerator
                 ->generateContent($prompt);
         }, 5000);
 
-        return $result->text();
+        return $result->text() ?? "No feedback available";
     }
 
     private function buildPrompt(array $data): string
