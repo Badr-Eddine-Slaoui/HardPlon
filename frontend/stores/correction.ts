@@ -1,6 +1,5 @@
 import { defineStore } from 'pinia';
 import { reactive, ref } from 'vue';
-import { api } from '~/utils/api';
 import type { meta, ReturnData } from '../types/api';
 import type { Correction } from '../types/correction';
 import { useToastStore } from './toast';
@@ -8,6 +7,7 @@ import { useToastStore } from './toast';
 export const useCorrection = defineStore(
     'correction',
     () => {
+        const api = useApi()
         const corrections = ref<Correction[] | null>(null)
         const correction = ref<Correction | null>(null)
         const toast = useToastStore()
