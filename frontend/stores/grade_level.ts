@@ -1,14 +1,14 @@
 import { defineStore } from 'pinia';
 import { reactive, ref } from 'vue';
-import { api } from '~/utils/api';
 import type { meta, ReturnData } from '../types/api';
 import type { Grade } from '../types/grade_level';
 import { useToastStore } from './toast';
-import { PaginatedData } from '../types/pagination';
+import type { PaginatedData } from '../types/pagination';
 
 export const useGradeLevel = defineStore(
     'grade_level',
     () => {
+        const api = useApi()
         const grade_levels = ref<Grade[] | null>(null)
         const grade_level = ref<Grade | null>(null)
         const archive_grade_levels = ref<Grade[] | null>(null)
