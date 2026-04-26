@@ -1,6 +1,5 @@
 import { defineStore } from 'pinia';
 import { reactive, ref } from 'vue';
-import { api } from '~/utils/api';
 import type { meta, ReturnData } from '~~/types/api';
 import type { ProblemTestCase } from '~~/types/problem_test_case';
 import { useToastStore } from './toast';
@@ -9,6 +8,7 @@ import type { PaginatedData } from '~~/types/pagination';
 export const useProblemTestCase = defineStore(
     'problem_test_case',
     () => {
+        const api = useApi()
         const test_cases = ref<ProblemTestCase[] | null>(null)
         const test_case = ref<ProblemTestCase | null>(null)
         const archived_test_cases = ref<ProblemTestCase[] | null>(null)
