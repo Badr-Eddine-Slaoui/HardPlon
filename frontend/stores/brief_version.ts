@@ -1,6 +1,5 @@
 import { defineStore } from 'pinia';
 import { reactive, ref } from 'vue';
-import { api } from '~/utils/api';
 import type { meta, ReturnData } from '../types/api';
 import type { BriefVersion } from '../types/brief_version';
 import type { PaginatedData } from '../types/pagination';
@@ -9,6 +8,7 @@ import { useToastStore } from './toast';
 export const useBriefVersion = defineStore(
     'brief_version',
     () => {
+        const api = useApi()
         const brief_versions = ref<BriefVersion[] | null>(null)
         const brief_version = ref<BriefVersion | null>(null)
         const archived_brief_versions = ref<BriefVersion[] | null>(null)
