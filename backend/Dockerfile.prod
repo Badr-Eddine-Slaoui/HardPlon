@@ -1,0 +1,22 @@
+FROM dunglas/frankenphp:latest
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y \
+    git unzip curl bash postgresql-client && \
+    install-php-extensions pdo pdo_pgsql pcntl
+
+COPY . .
+
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+
+RUN composer install --no-dev --optimize-autoloader
+
+RUN if [ ! -f public/frankenphp-worker.php ]; then php artisan octane:install --server=frankenphp; fi
+
+ENV OCTANE_SERVER=frankenphp
+ENV OCTANE_HTTPS=false
+
+EXPOSE 8000
+
+CMD ["php", "artisan", "octane:frankenphp", "--host=0.0.0.0", "--port=8000"]
