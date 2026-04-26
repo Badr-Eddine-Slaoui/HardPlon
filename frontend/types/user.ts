@@ -31,3 +31,8 @@ export interface User {
     class_group?: ClassGroup
 }
 
+export interface UserData {
+    users: User[]
+    archived_users: User[]
+}
+
