@@ -1,7 +1,5 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
-import { api } from '~/utils/api';
-import { useAuthStore } from './auth';
 import type { ReturnData } from '~~/types/api';
 import { useToastStore } from './toast';
 
@@ -17,6 +15,7 @@ export const useAdminStore = defineStore(
     () => {
         const statisticts = ref<Statistics | null>(null)
         const toast = useToastStore()
+        const api = useApi()
 
         async function fetchStatistics() {
             try {
