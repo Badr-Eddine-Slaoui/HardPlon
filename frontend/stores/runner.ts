@@ -1,14 +1,14 @@
 import { defineStore } from 'pinia';
 import { reactive, ref } from 'vue';
-import { api } from '~/utils/api';
 import type { meta, ReturnData } from '../types/api';
 import type { Runner } from '../types/runner';
 import { useToastStore } from './toast';
-import { PaginatedData } from '../types/pagination';
+import type { PaginatedData } from '../types/pagination';
 
 export const useRunner = defineStore(
     'runner',
     () => {
+        const api = useApi()
         const runners = ref<Runner[] | null>(null)
         const runner = ref<Runner | null>(null)
         const archived_runners = ref<Runner[] | null>(null)
