@@ -317,3 +317,7 @@ Route::prefix('worker')->group(function () {
         Route::put('/problem-submission-jobs/{id}', 'update');
     });
 });
+
+/* Health */
+
+Route::get('/health', fn () => response()->json(['status' => 'ok']));
