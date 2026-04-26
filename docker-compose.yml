@@ -93,6 +93,7 @@ services:
       context: ./worker
       dockerfile: Dockerfile
     container_name: examination_worker
+    env_file: ./worker/.env
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - /tmp:/tmp
@@ -104,6 +105,7 @@ services:
       context: ./problems_worker
       dockerfile: Dockerfile
     container_name: problem_worker
+    env_file: ./problems_worker/.env
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - /tmp:/tmp

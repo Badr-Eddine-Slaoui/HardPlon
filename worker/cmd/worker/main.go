@@ -24,6 +24,8 @@ func main() {
     redisPort := os.Getenv("REDIS_PORT")
     useTLS := os.Getenv("REDIS_TLS") == "true"
 
+	log.Printf("Starting worker with Redis at %s:%s (TLS: %v)", redisHost, redisPort, useTLS)
+
     if redisHost == "" || redisPort == "" {
         log.Fatal("REDIS_HOST or REDIS_PORT is not set in environment")
     }

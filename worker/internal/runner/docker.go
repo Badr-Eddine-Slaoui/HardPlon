@@ -30,11 +30,7 @@ type RunOptions struct {
 func RunContainer(opt RunOptions) (string, error) {
 	ctx := context.Background()
 
-	cli, err := client.NewClientWithOpts(
-        client.FromEnv,
-        client.WithVersion("1.41"),
-        client.WithAPIVersionNegotiation(),
-    )
+	cli, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
 		return "", err
 	}
