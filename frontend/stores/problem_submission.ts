@@ -1,10 +1,10 @@
 import { defineStore } from 'pinia';
-import { api } from '~/utils/api';
 import type { ReturnData } from '../types/api';
 import { useToastStore } from './toast';
 
 export const useProblemSubmission = defineStore('problem_submission', () => {
     const toast = useToastStore()
+    const api = useApi()
 
     async function storeProblemSubmissions(submission_id: number, submissions: Array<{ problem_id: number, code: string }>): Promise<ReturnData> {
         try {
