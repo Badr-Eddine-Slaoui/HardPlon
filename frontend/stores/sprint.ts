@@ -1,6 +1,5 @@
 import { defineStore } from 'pinia';
 import { reactive, ref } from 'vue';
-import { api } from '~/utils/api';
 import type { meta, ReturnData } from '../types/api';
 import type { Sprint, SprintSkill } from '../types/sprint';
 import { useToastStore } from './toast';
@@ -9,6 +8,7 @@ import type { PaginatedData } from '../types/pagination';
 export const useSprint = defineStore(
     'sprint',
     () => {
+        const api = useApi()
         const sprints = ref<Sprint[] | null>(null)
         const sprint = ref<Sprint | null>(null)
         const archived_sprints = ref<Sprint[] | null>(null)
