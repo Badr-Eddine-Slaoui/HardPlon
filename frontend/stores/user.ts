@@ -1,14 +1,14 @@
 import { defineStore } from 'pinia';
 import { reactive, ref } from 'vue';
-import { api } from '~/utils/api';
 import type { meta, ReturnData } from '../types/api';
 import type { User, UserData } from '../types/user';
-import { PaginatedData } from '../types/pagination';
+import type { PaginatedData } from '../types/pagination';
 import { useToastStore } from './toast';
 
 export const useUser = defineStore(
     'user',
     () => {
+        const api = useApi()
         const users = ref<User[] | null>(null)
         const user = ref<User | null>(null)
         const archived_users = ref<User[] | null>(null)
