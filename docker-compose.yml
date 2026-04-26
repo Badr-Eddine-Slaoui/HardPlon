@@ -28,8 +28,6 @@ services:
       - "${NUXT_PORT}:3000"
     volumes:
       - "${FRONTEND_PATH}:/app"
-    environment:
-      NUXT_PUBLIC_API_BASE: http://app:8000
     depends_on:
       - app
 
