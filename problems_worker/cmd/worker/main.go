@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"fmt"
 	"log"
 	"os"
@@ -14,16 +15,29 @@ import (
 
 func main() {
 	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
+    if err != nil {
+        log.Println("Skipping .env file loading: using system environment variables")
+    }
+
+    redisHost := os.Getenv("REDIS_HOST")
+    redisPort := os.Getenv("REDIS_PORT")
+    useTLS := os.Getenv("REDIS_TLS") == "true"
+
+    if redisHost == "" || redisPort == "" {
+        log.Fatal("REDIS_HOST or REDIS_PORT is not set in environment")
+    }
+
+	opts := &goredis.Options{
+		Addr: fmt.Sprintf("%s:%s", redisHost, redisPort),
 	}
 
-	redisHost := os.Getenv("REDIS_HOST")
-	redisPort := os.Getenv("REDIS_PORT")
+	if useTLS {
+		opts.TLSConfig = &tls.Config{
+			MinVersion: tls.VersionTLS12,
+		}
+	}
 
-	rdb := goredis.NewClient(&goredis.Options{
-		Addr: fmt.Sprintf("%s:%s", redisHost, redisPort),
-	})
+	rdb := goredis.NewClient(opts)
 
 	log.Println("Worker started...")
 
