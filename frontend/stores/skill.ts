@@ -1,14 +1,14 @@
 import { defineStore } from 'pinia';
 import { reactive, ref } from 'vue';
-import { api } from '~/utils/api';
 import type { meta, ReturnData } from '../types/api';
 import type { Skill } from '../types/skill';
 import { useToastStore } from './toast';
-import { PaginatedData } from '../types/pagination';
+import type { PaginatedData } from '../types/pagination';
 
 export const useSkill = defineStore(
     'skill',
     () => {
+        const api = useApi()
         const skills = ref<Skill[] | null>(null)
         const skill = ref<Skill | null>(null)
         const archived_skills = ref<Skill[] | null>(null)
