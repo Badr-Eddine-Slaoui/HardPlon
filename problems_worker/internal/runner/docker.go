@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
+	"log"
 	"strings"
 	"time"
 
@@ -21,6 +23,16 @@ func RunContainer(image, workDir, command string, timeoutSec int) (string, error
 		return "", err
 	}
 	defer cli.Close()
+
+	log.Printf("Pulling image: %s", image)
+    reader, err := cli.ImagePull(ctx, image, types.ImagePullOptions{})
+    if err != nil {
+        return "", fmt.Errorf("failed to pull image: %w", err)
+    }
+    defer reader.Close()
+
+	_, _ = io.Copy(io.Discard, reader) 
+    log.Println("Image pulled successfully")
 
 	fmt.Println("🐳 Creating container with image:", image)
 

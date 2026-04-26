@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"log"
 	"os"
 	"path/filepath"
 	"time"
@@ -35,6 +37,16 @@ func RunContainer(opt RunOptions) (string, error) {
 		return "", err
 	}
 	defer cli.Close()
+
+	log.Printf("Pulling image: %s", opt.Image)
+    reader, err := cli.ImagePull(ctx, opt.Image, types.ImagePullOptions{})
+    if err != nil {
+        return "", fmt.Errorf("failed to pull image: %w", err)
+    }
+    defer reader.Close()
+
+	_, _ = io.Copy(io.Discard, reader) 
+    log.Println("Image pulled successfully")
 
 	configDir := fmt.Sprintf("/tmp/job_%d_config", opt.JobID)
 	outputDir := fmt.Sprintf("/tmp/job_%d_output", opt.JobID)
