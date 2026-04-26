@@ -1,14 +1,14 @@
 import { defineStore } from 'pinia';
 import { reactive, ref } from 'vue';
-import { api } from '~/utils/api';
 import type { meta, ReturnData } from '../types/api';
 import type { Level } from '../types/level';
 import { useToastStore } from './toast';
-import { PaginatedData } from '../types/pagination';
+import type { PaginatedData } from '../types/pagination';
 
 export const useLevel = defineStore(
     'level',
     () => {
+        const api = useApi()
         const levels = ref<Level[] | null>(null)
         const level = ref<Level | null>(null)
         const archived_levels = ref<Level[] | null>(null)
