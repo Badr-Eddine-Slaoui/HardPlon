@@ -16,7 +16,11 @@ import (
 func RunContainer(image, workDir, command string, timeoutSec int) (string, error) {
 	ctx := context.Background()
 
-	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation(),)
+	cli, err := client.NewClientWithOpts(
+        client.FromEnv,
+        client.WithVersion("1.41"),
+        client.WithAPIVersionNegotiation(),
+    )
 	if err != nil {
 		return "", err
 	}
