@@ -1,7 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import type { AuthResponse, ReturnData } from '~~/types/api';
-import { api } from '../app/utils/api';
 import type { User } from '~~/types/user';
 import { useToastStore } from './toast';
 
@@ -10,6 +9,7 @@ import { useToastStore } from './toast';
 export const useAuthStore = defineStore(
     'auth',
     () => {
+        const api = useApi()
         const user = ref<any>(null)
         const token = ref<string | null>(null)
 
