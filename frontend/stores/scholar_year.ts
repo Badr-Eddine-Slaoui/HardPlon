@@ -1,14 +1,14 @@
 import { defineStore } from 'pinia';
 import { reactive, ref } from 'vue';
-import { api } from '~/utils/api';
 import type { meta, ReturnData } from '../types/api';
 import type { Year } from '../types/scholar_year';
 import { useToastStore } from './toast';
-import { PaginatedData } from '../types/pagination';
+import type { PaginatedData } from '../types/pagination';
 
 export const useScholarYear = defineStore(
     'scholar_year',
     () => {
+        const api = useApi()
         const scholar_years = ref<Year[] | null>(null)
         const scholar_year = ref<Year | null>(null)
         const archived_years = ref<Year[] | null>(null)
