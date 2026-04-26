@@ -1,14 +1,14 @@
 import { defineStore } from 'pinia';
 import { reactive, ref } from 'vue';
-import { api } from '~/utils/api';
 import type { meta, ReturnData } from '../types/api';
 import type { RunnerVersion } from '../types/runner_version';
 import { useToastStore } from './toast';
-import { PaginatedData } from '../types/pagination';
+import type { PaginatedData } from '../types/pagination';
 
 export const useRunnerVersion = defineStore(
     'runner_version',
     () => {
+        const api = useApi()
         const runner_versions = ref<RunnerVersion[] | null>(null)
         const runner_version = ref<RunnerVersion | null>(null)
         const archived_runner_versions = ref<RunnerVersion[] | null>(null)
