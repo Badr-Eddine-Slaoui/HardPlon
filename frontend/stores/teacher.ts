@@ -1,6 +1,5 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
-import { api } from '~/utils/api';
 import type { ReturnData } from '~~/types/api';
 import { useToastStore } from './toast';
 
@@ -30,6 +29,7 @@ interface TeacherStatistics {
 export const useTeacherStore = defineStore(
     'teacher',
     () => {
+        const api = useApi()
         const statistics = ref<TeacherStatistics | null>(null)
         const toast = useToastStore()
 
