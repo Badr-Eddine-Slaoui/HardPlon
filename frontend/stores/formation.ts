@@ -1,14 +1,14 @@
 import { defineStore } from 'pinia';
 import { reactive, ref } from 'vue';
-import { api } from '~/utils/api';
 import type { meta, ReturnData } from '../types/api';
 import type { Formation } from '../types/formation';
 import { useToastStore } from './toast';
-import { PaginatedData } from '../types/pagination';
+import type { PaginatedData } from '../types/pagination';
 
 export const useFormation = defineStore(
     'formation',
     () => {
+        const api = useApi()
         const formations = ref<Formation[] | null>(null)
         const formation = ref<Formation | null>(null)
         const archived_formations = ref<Formation[] | null>(null)
