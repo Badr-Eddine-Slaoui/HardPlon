@@ -1,6 +1,5 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
-import { api } from '~/utils/api';
 import type { DashboardData } from '../types/student';
 import type { ReturnData } from '~~/types/api';
 import { useToastStore } from './toast';
@@ -8,6 +7,7 @@ import { useToastStore } from './toast';
 export const useStudent = defineStore(
     'student', 
     () => {
+        const api = useApi()
         const dashboardData = ref<DashboardData | null>(null);
         const loading = ref(false);
         const toast = useToastStore();
