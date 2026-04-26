@@ -135,7 +135,8 @@ class SubmissionController extends Controller
             return response()->json([
                 "success" => false,
                 "data" => null,
-                "message" => "Something went wrong. Please try again.",
+                "message" => "Something went wrong. Please try again: " . $e->getMessage(),
+                "trace" => $e->getTraceAsString(),
                 "code" => $e->getCode()
             ], 500);
         }
