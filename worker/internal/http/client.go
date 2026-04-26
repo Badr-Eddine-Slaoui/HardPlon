@@ -5,10 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"strconv"
 )
 
-var BaseURL = "http://caddy/api/worker"
+var BaseURL = os.Getenv("BASE_URL")
 
 type JobPayload struct {
 	SubmissionID   int    `json:"submission_id"`
