@@ -24,8 +24,8 @@ jobs:
               run: |
                   docker build -t ${{ secrets.DOCKER_USERNAME }}/rewire-backend:${{ env.IMAGE_TAG }} -f backend/Dockerfile.prod ./backend
                   docker build -t ${{ secrets.DOCKER_USERNAME }}/rewire-frontend:${{ env.IMAGE_TAG }} -f frontend/Dockerfile.prod ./frontend
-                  docker build -t ${{ secrets.DOCKER_USERNAME }}/rewire-evaluation-worker:${{ env.IMAGE_TAG }} -f worker/Dockerfile.prod ./worker
-                  docker build -t ${{ secrets.DOCKER_USERNAME }}/rewire-problems-worker:${{ env.IMAGE_TAG }} -f problems_worker/Dockerfile.prod ./problems_worker
+                  docker build -t ${{ secrets.DOCKER_USERNAME }}/rewire-evaluation-worker:${{ env.IMAGE_TAG }} -f worker/Dockerfile ./worker
+                  docker build -t ${{ secrets.DOCKER_USERNAME }}/rewire-problems-worker:${{ env.IMAGE_TAG }} -f problems_worker/Dockerfile ./problems_worker
 
             - name: Push images
               run: |
