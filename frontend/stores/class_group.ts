@@ -1,14 +1,14 @@
 import { defineStore } from 'pinia';
 import { reactive, ref } from 'vue';
-import { api } from '~/utils/api';
 import type { meta, ReturnData } from '../types/api';
 import type { ClassGroup } from '../types/class_group';
 import { useToastStore } from './toast';
-import { PaginatedData } from '../types/pagination';
+import type { PaginatedData } from '../types/pagination';
 
 export const useClassGroup = defineStore(
     'class_group',
     () => {
+        const api = useApi()
         const class_groups = ref<ClassGroup[] | null>(null)
         const class_group = ref<ClassGroup | null>(null)
         const archived_class_groups = ref<ClassGroup[] | null>(null)
