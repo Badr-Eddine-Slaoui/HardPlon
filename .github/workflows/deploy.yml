@@ -1,0 +1,44 @@
+name: Deploy
+
+on:
+    push:
+        branches: [ main ]
+
+jobs:
+    deploy:
+        runs-on: ubuntu-latest
+
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Set tag
+              run: 
+                IMAGE_TAG=$(cat version.txt)
+                echo "IMAGE_TAG=${IMAGE_TAG}" >> $GITHUB_ENV
+
+            - name: Login DockerHub
+              run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{
+                  secrets.DOCKER_USERNAME }}" --password-stdin
+
+            - name: Build images
+              run: |
+                  docker build -t ${{ secrets.DOCKER_USERNAME }}/rewire-backend:${IMAGE_TAG} -f backend/Dockerfile.prod ./backend
+                  docker build -t ${{ secrets.DOCKER_USERNAME }}/rewire-frontend:${IMAGE_TAG} -f frontend/Dockerfile.prod ./frontend
+                  docker build -t ${{ secrets.DOCKER_USERNAME }}/rewire-evaluation-worker:${IMAGE_TAG} -f worker/Dockerfile.prod ./worker
+                  docker build -t ${{ secrets.DOCKER_USERNAME }}/rewire-problems-worker:${IMAGE_TAG} -f problems_worker/Dockerfile.prod ./problems_worker
+
+            - name: Push images
+              run: |
+                  docker push ${{ secrets.DOCKER_USERNAME }}/rewire-backend:${IMAGE_TAG}
+                  docker push ${{ secrets.DOCKER_USERNAME }}/rewire-frontend:${IMAGE_TAG}
+                  docker push ${{ secrets.DOCKER_USERNAME }}/rewire-evaluation-worker:${IMAGE_TAG}
+                  docker push ${{ secrets.DOCKER_USERNAME }}/rewire-problems-worker:${IMAGE_TAG}
+
+            - name: Deploy
+              uses: appleboy/ssh-action@v1
+              with:
+                  host: ${{ secrets.SERVER_IP }}
+                  username: ubuntu
+                  key: ${{ secrets.SSH_KEY }}
+                  script: |
+                      bash /home/ubuntu/rewire/deploy.sh ${{ env.IMAGE_TAG }} ${{ secrets.WORKERS_PRIVATE_IP }}
