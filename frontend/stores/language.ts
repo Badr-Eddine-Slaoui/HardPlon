@@ -1,6 +1,5 @@
 import { defineStore } from 'pinia';
 import { reactive, ref } from 'vue';
-import { api } from '~/utils/api';
 import type { meta, ReturnData } from '../types/api';
 import type { Language } from '../types/language';
 import { useToastStore } from './toast';
@@ -9,6 +8,7 @@ import type { PaginatedData } from '../types/pagination';
 export const useLanguage = defineStore(
     'language',
     () => {
+        const api = useApi()
         const languages = ref<Language[] | null>(null)
         const language = ref<Language | null>(null)
         const archived_languages = ref<Language[] | null>(null)
